@@ -4,15 +4,29 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 
 const app = express();
+
+// ✅ ตรวจสอบว่า MONGO_URI ถูกต้องหรือไม่
+console.log("🔍 Connecting to MongoDB:", process.env.MONGO_URI);
+
+// ✅ แก้ไข: ใช้ CORS แค่ครั้งเดียว
 app.use(cors({
-    origin: "*",  // อนุญาตทุกโดเมน
-    methods: ["GET", "POST", "DELETE"]
+    origin: "*",  // ✅ อนุญาตให้ทุกโดเมนเข้าถึง API
+    methods: ["GET", "POST", "DELETE"], // ✅ อนุญาตเฉพาะบาง Method
+    allowedHeaders: ["Content-Type"] // ✅ อนุญาตเฉพาะ Header ที่จำเป็น
 }));
+
 app.use(express.json());
 
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log("✅ MongoDB Connected"))
-    .catch(err => console.error("❌ MongoDB Connection Error:", err));
+// ✅ เชื่อมต่อ MongoDB Atlas
+mongoose.connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 10000,
+    socketTimeoutMS: 45000,
+    autoIndex: true, // ✅ ลดความล่าช้าในการค้นหา
+})
+.then(() => console.log("✅ MongoDB Connected"))
+.catch(err => console.error("❌ MongoDB Connection Error:", err))
 
 const toolSchema = new mongoose.Schema({
     name: String,
@@ -38,13 +52,12 @@ app.post("/borrow", async (req, res) => {
         const { site, tools, note } = req.body;
         if (!site) return res.status(400).json({ error: "ต้องระบุชื่อหน้างาน!" });
 
-        // ✅ ตรวจสอบค่าของ tools ก่อนบันทึก
         console.log("📌 ข้อมูลที่ได้รับ:", tools);
 
         await Tool.insertMany(tools.map(tool => ({
             name: tool.name,
             site,
-            quantity: Number(tool.quantity) || 1,  // ✅ บังคับให้เป็นตัวเลข
+            quantity: Number(tool.quantity) || 1,
             note: note || ""
         })));
 
@@ -55,12 +68,12 @@ app.post("/borrow", async (req, res) => {
     }
 });
 
+// ✅ API: คืนอุปกรณ์เฉพาะชิ้นในหน้างาน
 app.post("/return-item", async (req, res) => {
     try {
         const { site, name } = req.body;
         if (!site || !name) return res.status(400).json({ error: "ต้องระบุหน้างานและชื่ออุปกรณ์!" });
 
-        // ✅ ตรวจสอบว่ามีอุปกรณ์นี้ในฐานข้อมูลไหม
         const tool = await Tool.findOne({ site, name });
 
         if (!tool) {
@@ -68,11 +81,9 @@ app.post("/return-item", async (req, res) => {
         }
 
         if (tool.quantity > 1) {
-            // ✅ ถ้ามีมากกว่า 1 ให้ลดจำนวนลง
             await Tool.updateOne({ site, name }, { $inc: { quantity: -1 } });
             res.json({ message: `คืน ${name} 1 ชิ้นจากหน้างาน ${site} สำเร็จ!` });
         } else {
-            // ✅ ถ้ามีแค่ 1 ให้ลบออก
             await Tool.deleteOne({ site, name });
             res.json({ message: `คืน ${name} สำเร็จจากหน้างาน ${site}` });
         }
@@ -81,7 +92,7 @@ app.post("/return-item", async (req, res) => {
     }
 });
 
-const PORT = 3000;
+// ✅ ตั้งค่า Static Files
 const path = require("path");
 
 // ✅ ให้ Express โหลดไฟล์ในโฟลเดอร์ public
@@ -90,4 +101,12 @@ app.use(express.static(path.join(__dirname, "public")));
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "index.html"));
 });
+
+// ✅ เพิ่มเส้นทางสำหรับ api-ui.html
+app.get("/api-ui", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "api-ui.html"));
+});
+
+// ✅ เปิดเซิร์ฟเวอร์
+const PORT = 3000;
 app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
