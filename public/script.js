@@ -78,7 +78,52 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
     
-
+    function attachReturnEventListeners() {
+        document.querySelectorAll(".return-item-btn").forEach(button => {
+            button.addEventListener("click", async function () {
+                const site = this.dataset.site;
+                const name = this.dataset.name;
+    
+                try {
+                    const response = await fetch(API_URL + "/return-item", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ site, name })
+                    });
+    
+                    if (response.ok) {
+                        Swal.fire({ icon: "success", title: `คืน ${name} สำเร็จ!` });
+                        fetchBorrowedTools();
+                    }
+                } catch (error) {
+                    Swal.fire({ icon: "error", title: "เกิดข้อผิดพลาด!", text: "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้" });
+                }
+            });
+        });
+    
+        document.querySelectorAll(".return-all-btn").forEach(button => {
+            button.addEventListener("click", async function () {
+                const site = this.dataset.site;
+                const name = this.dataset.name;
+    
+                try {
+                    const response = await fetch(API_URL + "/return-all", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ site, name })
+                    });
+    
+                    if (response.ok) {
+                        Swal.fire({ icon: "success", title: `คืนทั้งหมดของ ${name} สำเร็จ!` });
+                        fetchBorrowedTools();
+                    }
+                } catch (error) {
+                    Swal.fire({ icon: "error", title: "เกิดข้อผิดพลาด!", text: "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้" });
+                }
+            });
+        });
+    }
+    
     async function fetchBorrowedTools() {
         try {
             const response = await fetch(API_URL + "/borrowed-tools");
@@ -105,7 +150,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 const siteContainer = document.createElement("div");
                 siteContainer.classList.add("site-section");
                 siteContainer.innerHTML = `<h2>🏗️ หน้างาน: ${site}</h2>`;
-    
+
                 const toolTable = document.createElement("table");
                 toolTable.innerHTML = `
                     <thead>
@@ -114,6 +159,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             <th>🔢 จำนวน</th>
                             <th>📝 หมายเหตุ</th>
                             <th>🔄 คืน</th>
+                            <th>🔄 คืนทั้งหมด</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -122,12 +168,17 @@ document.addEventListener("DOMContentLoaded", function () {
                                 <td>${tool.name}</td>
                                 <td>${tool.quantity} ชิ้น</td>
                                 <td>${tool.note || "ไม่มีหมายเหตุ"}</td>
-                                <td><button class="return-item-btn" data-site="${site}" data-name="${tool.name}">🔄 คืน</button></td>
+                                <td>
+                                    <button class="return-item-btn" data-site="${site}" data-name="${tool.name}">🔄 คืน</button>
+                                </td>
+                                <td>
+                                    <button class="return-all-btn" data-site="${site}" data-name="${tool.name}">🔄 คืนทั้งหมด</button>
+                                </td>
                             </tr>
                         `).join("")}
                     </tbody>
                 `;
-    
+
                 siteContainer.appendChild(toolTable);
                 borrowedList.appendChild(siteContainer);
             });

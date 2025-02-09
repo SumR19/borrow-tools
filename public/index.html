@@ -6,7 +6,8 @@
     <title>ระบบยืม-คืนอุปกรณ์</title>
     <link rel="stylesheet" href="/style.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-</head><link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="/manifest.json">
+</head>
 <body>
 
     <header>
@@ -27,18 +28,20 @@
                 <input type="text" id="note" placeholder="เพิ่มหมายเหตุ">
                 <button type="submit">✅ บันทึก</button>
             </form>
+
             <h2>📦 อุปกรณ์ที่ยืมไป</h2>
             <table>
                 <thead>
                     <tr>
                         <th>อุปกรณ์</th>
                         <th>หน้างาน</th>
+                        <th>จำนวน</th>
                         <th>หมายเหตุ</th>
+                        <th>คืน</th>
                     </tr>
                 </thead>
                 <tbody id="borrowed-list"></tbody>
             </table>
-            <button id="return-btn" style="display: none;">🔄 คืนอุปกรณ์ทั้งหมด</button>
         </div>
     </main>
 

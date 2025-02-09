@@ -91,6 +91,27 @@ app.post("/return-item", async (req, res) => {
     }
 });
 
+// ✅ API: คืนอุปกรณ์ทั้งหมดของชนิดเดียวกันในหน้างานเดียวกัน
+app.post("/return-all", async (req, res) => {
+    try {
+        const { site, name } = req.body;
+        if (!site || !name) return res.status(400).json({ error: "ต้องระบุหน้างานและชื่ออุปกรณ์!" });
+
+        const tool = await Tool.findOne({ site, name });
+
+        if (!tool) {
+            return res.status(404).json({ error: `ไม่พบอุปกรณ์ "${name}" ในหน้างาน "${site}"` });
+        }
+
+        // ✅ ลบรายการนี้ทั้งหมดจากฐานข้อมูล
+        await Tool.deleteOne({ site, name });
+
+        res.json({ message: `คืน ${name} ทั้งหมดสำเร็จจากหน้างาน ${site}` });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ✅ ตั้งค่า Static Files
 const path = require("path");
 
