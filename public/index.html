@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบยืม-คืนอุปกรณ์</title>
+    <link rel="stylesheet" href="/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head><link rel="manifest" href="/manifest.json">
+<body>
+
+    <header>
+        <h1>📦 ระบบยืม-คืนอุปกรณ์</h1>
+    </header>
+
+    <main>
+        <div class="container">
+            <h2>📋 ยืมอุปกรณ์</h2>
+            <label for="search-tool">🔍 ค้นหาอุปกรณ์</label>
+            <input type="text" id="search-tool" placeholder="พิมพ์ชื่ออุปกรณ์ที่ต้องการค้นหา">
+            <form id="borrow-form">
+                <label for="site-name">🏗️ หน้างาน</label>
+                <input type="text" id="site-name" placeholder="กรอกชื่อหน้างาน">
+                <label>🛠️ เลือกอุปกรณ์ที่ต้องการยืม</label>
+                <div id="tools-list"></div>
+                <label for="note">📝 หมายเหตุ</label>
+                <input type="text" id="note" placeholder="เพิ่มหมายเหตุ">
+                <button type="submit">✅ บันทึก</button>
+            </form>
+            <h2>📦 อุปกรณ์ที่ยืมไป</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>อุปกรณ์</th>
+                        <th>หน้างาน</th>
+                        <th>หมายเหตุ</th>
+                    </tr>
+                </thead>
+                <tbody id="borrowed-list"></tbody>
+            </table>
+            <button id="return-btn" style="display: none;">🔄 คืนอุปกรณ์ทั้งหมด</button>
+        </div>
+    </main>
+
+    <script src="/script.js"></script>
+</body>
+</html>

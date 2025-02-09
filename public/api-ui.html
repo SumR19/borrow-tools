@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 รายการอุปกรณ์ที่ถูกยืม</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 16px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        .site-section {
+            margin-bottom: 20px;
+        }
+
+        .site-section h2 {
+            background: #007bff;
+            color: white;
+            padding: 8px;
+            border-radius: 5px;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #f8f9fa;
+        }
+
+        /* ✅ ทำให้ตารางเลื่อนซ้ายขวาได้ในมือถือ */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        @media (max-width: 600px) {
+            table {
+                font-size: 14px;
+            }
+
+            th, td {
+                padding: 8px;
+            }
+
+            button {
+                font-size: 14px;
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 รายการอุปกรณ์ที่ถูกยืม</h1>
+        <button id="refresh-btn">🔄 รีเฟรช</button>
+        <div id="borrowed-tools"></div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async function () {
+            const API_URL = "http://localhost:3000/borrowed-tools";
+            const borrowedToolsContainer = document.getElementById("borrowed-tools");
+            const refreshBtn = document.getElementById("refresh-btn");
+
+            async function fetchBorrowedTools() {
+                try {
+                    const response = await fetch(API_URL);
+                    const data = await response.json();
+
+                    borrowedToolsContainer.innerHTML = "";
+
+                    if (data.length === 0) {
+                        borrowedToolsContainer.innerHTML = "<p>📭 ไม่มีอุปกรณ์ที่ถูกยืม</p>";
+                        return;
+                    }
+
+                    const groupedData = {};
+                    data.forEach(tool => {
+                        if (!groupedData[tool.site]) {
+                            groupedData[tool.site] = [];
+                        }
+                        groupedData[tool.site].push(tool);
+                    });
+
+                    Object.keys(groupedData).forEach(site => {
+                        const siteSection = document.createElement("div");
+                        siteSection.classList.add("site-section");
+                        siteSection.innerHTML = `<h2>🏗️ หน้างาน: ${site}</h2>`;
+
+                        const tableContainer = document.createElement("div");
+                        tableContainer.classList.add("table-container");
+
+                        const toolTable = document.createElement("table");
+                        toolTable.innerHTML = `
+                            <tr>
+                                <th>🛠️ อุปกรณ์</th>
+                                <th>🔢 จำนวน</th>
+                                <th>📝 หมายเหตุ</th>
+                            </tr>
+                        `;
+
+                        groupedData[site].forEach(tool => {
+                            const row = document.createElement("tr");
+                            row.innerHTML = `
+                                <td>${tool.name}</td>
+                                <td>${tool.quantity}</td>
+                                <td>${tool.note || "ไม่มีหมายเหตุ"}</td>
+                            `;
+                            toolTable.appendChild(row);
+                        });
+
+                        tableContainer.appendChild(toolTable);
+                        siteSection.appendChild(tableContainer);
+                        borrowedToolsContainer.appendChild(siteSection);
+                    });
+
+                } catch (error) {
+                    Swal.fire({ icon: "error", title: "เกิดข้อผิดพลาด!", text: "ไม่สามารถโหลดข้อมูลจาก API ได้" });
+                }
+            }
+
+            refreshBtn.addEventListener("click", fetchBorrowedTools);
+
+            fetchBorrowedTools();
+        });
+    </script>
+</body>
+</html>
