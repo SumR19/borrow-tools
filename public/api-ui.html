@@ -104,13 +104,15 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", async function () {
-            const API_URL = "https://borrow-tools.onrender.com"; // ใช้ URL จริงของ Render
+            const API_URL = "https://borrow-tools.onrender.com/borrowed-tools"; // ✅ URL ที่ถูกต้อง
             const borrowedToolsContainer = document.getElementById("borrowed-tools");
             const refreshBtn = document.getElementById("refresh-btn");
 
             async function fetchBorrowedTools() {
                 try {
                     const response = await fetch(API_URL);
+                    if (!response.ok) throw new Error("โหลดข้อมูลจาก API ไม่ได้");
+
                     const data = await response.json();
 
                     borrowedToolsContainer.innerHTML = "";

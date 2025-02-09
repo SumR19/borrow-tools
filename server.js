@@ -19,10 +19,9 @@ app.use(express.json());
 
 // ✅ เชื่อมต่อ MongoDB Atlas
 mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 10000,
-    socketTimeoutMS: 45000,
+    useNewUrlParser: true, // ✅ คงไว้ได้
+    serverSelectionTimeoutMS: 10000, // 10 วินาที
+    socketTimeoutMS: 45000, // 45 วินาที
     autoIndex: true, // ✅ ลดความล่าช้าในการค้นหา
 })
 .then(() => console.log("✅ MongoDB Connected"))
