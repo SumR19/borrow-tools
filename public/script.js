@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", function () {
-    const API_URL = "https://3d00-1-10-233-58.ngrok-free.app";
+    const API_URL = "https://borrow-tools.onrender.com";
     const toolsList = document.getElementById("tools-list");
     const borrowedList = document.getElementById("borrowed-list");
     const siteInput = document.getElementById("site-name");
