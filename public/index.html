@@ -4,12 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบยืม-คืนอุปกรณ์</title>
+    <link rel="icon" type="image/png" href="icons/borrow-tools.png">
     <link rel="stylesheet" href="/style.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link rel="manifest" href="/manifest.json">
 </head>
 <body>
-
     <header>
         <h1>📦 ระบบยืม-คืนอุปกรณ์</h1>
     </header>
@@ -17,31 +16,45 @@
     <main>
         <div class="container">
             <h2>📋 ยืมอุปกรณ์</h2>
-            <label for="search-tool">🔍 ค้นหาอุปกรณ์</label>
-            <input type="text" id="search-tool" placeholder="พิมพ์ชื่ออุปกรณ์ที่ต้องการค้นหา">
+            
             <form id="borrow-form">
-                <label for="site-name">🏗️ หน้างาน</label>
-                <input type="text" id="site-name" placeholder="กรอกชื่อหน้างาน">
-                <label>🛠️ เลือกอุปกรณ์ที่ต้องการยืม</label>
-                <div id="tools-list"></div>
-                <label for="note">📝 หมายเหตุ</label>
-                <input type="text" id="note" placeholder="เพิ่มหมายเหตุ">
-                <button type="submit">✅ บันทึก</button>
+                <div class="form-group">
+                    <label for="site-name">🏗️ ชื่อหน้างาน</label>
+                    <input type="text" id="site-name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="note">📝 หมายเหตุ (ไม่บังคับ)</label>
+                    <textarea id="note" rows="3"></textarea>
+                </div>
+                
+                <button type="submit">📤 ส่งข้อมูลการยืม</button>
             </form>
 
+            <!-- ✅ ส่วนค้นหาและรายการอุปกรณ์ -->
+            <div class="tools-section">
+                <label for="search-tool">🔍 ค้นหาอุปกรณ์</label>
+                <input type="text" id="search-tool" placeholder="พิมพ์ชื่ออุปกรณ์ที่ต้องการค้นหา">
+                <div id="tools-list"></div>
+            </div>
+
             <h2>📦 อุปกรณ์ที่ยืมไป</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>อุปกรณ์</th>
-                        <th>หน้างาน</th>
-                        <th>จำนวน</th>
-                        <th>หมายเหตุ</th>
-                        <th>คืน</th>
-                    </tr>
-                </thead>
-                <tbody id="borrowed-list"></tbody>
-            </table>
+            
+            <!-- ✅ แก้ไข: ใช้ div container แทน table ให้ JavaScript สร้าง DOM เอง -->
+            <div class="table-container">
+                <div id="borrowed-list">
+                    <div style="text-align: center; padding: 20px;">
+                        <span class="loading-spinner"></span> กำลังโหลดข้อมูล...
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ✅ Navigation Links -->
+            <div class="nav-links">
+                <a href="/api-ui" class="nav-link">📊 ดูรายการอุปกรณ์ที่ยืม</a>
+                <a href="/dashboard" class="nav-link">📈 Dashboard</a>
+                <a href="/history-page" class="nav-link">📜 ประวัติ</a>
+            </div>
         </div>
     </main>
 

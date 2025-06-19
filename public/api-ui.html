@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>📊 รายการอุปกรณ์ที่ถูกยืม</title>
+    <link rel="icon" type="image/x-icon" href="icons/api-ui.png">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -25,6 +26,28 @@
 
         h1 {
             text-align: center;
+            color: #333;
+        }
+
+        /* ✅ Category Filter */
+        .filter-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-section select {
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            background: white;
+            min-width: 150px;
+        }
+
+        .filter-section label {
+            font-weight: 600;
             color: #333;
         }
 
@@ -74,9 +97,37 @@
             background: #f8f9fa;
         }
 
-        /* ✅ ทำให้ตารางเลื่อนซ้ายขวาได้ในมือถือ */
         .table-container {
             overflow-x: auto;
+        }
+
+        /* ✅ Category Stats */
+        .category-stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            flex: 1;
+            min-width: 150px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
         }
 
         @media (max-width: 600px) {
@@ -92,48 +143,129 @@
                 font-size: 14px;
                 padding: 8px;
             }
+
+            .filter-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-section select {
+                min-width: auto;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>📋 รายการอุปกรณ์ที่ถูกยืม</h1>
-        <button id="refresh-btn">🔄 รีเฟรช</button>
+        
+        <!-- ✅ Filter Section -->
+        <div class="filter-section">
+            <label for="category-filter">📂 เลือกหน้างาน:</label>
+            <select id="category-filter">
+                <option value="all">ทั้งหมด</option>
+            </select>
+            <button id="refresh-btn" style="width: auto; margin: 0; padding: 8px 16px;">🔄 รีเฟรช</button>
+        </div>
+
+        <!-- ✅ Category Stats -->
+        <div class="category-stats" id="category-stats">
+            <!-- จะถูกสร้างด้วย JavaScript -->
+        </div>
+        
         <div id="borrowed-tools"></div>
+        
+        <!-- ✅ เพิ่มลิงก์กลับ -->
+        <div style="margin-top: 20px; text-align: center;">
+            <a href="/dashboard" style="display: inline-block; padding: 10px 20px; background: #17a2b8; color: white; text-decoration: none; border-radius: 5px; margin-left: 10px;">📊 Dashboard</a>
+            <a href="/history-page" style="display: inline-block; padding: 10px 20px; background: #ffc107; color: black; text-decoration: none; border-radius: 5px; margin-left: 10px;">📜 ประวัติ</a>
+        </div>
     </div>
 
     <script>
         document.addEventListener("DOMContentLoaded", async function () {
-            const API_URL = "https://borrow-tools.onrender.com/borrowed-tools"; // ✅ URL ที่ถูกต้อง
+            const API_URL = "https://yn-hiking-engage-everywhere.trycloudflare.com";
             const borrowedToolsContainer = document.getElementById("borrowed-tools");
+            const categoryFilter = document.getElementById("category-filter");
+            const categoryStats = document.getElementById("category-stats");
             const refreshBtn = document.getElementById("refresh-btn");
 
-            async function fetchBorrowedTools() {
+            // ✅ โหลดหมวดหมู่ทั้งหมด
+            async function loadCategories() {
                 try {
-                    const response = await fetch(API_URL);
-                    if (!response.ok) throw new Error("โหลดข้อมูลจาก API ไม่ได้");
+                    const response = await fetch(`${API_URL}/categories`);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    
+                    const categories = await response.json();
+                    console.log("📂 หมวดหมู่ที่พบ:", categories);
 
-                    const data = await response.json();
+                    categoryFilter.innerHTML = '<option value="all">ทั้งหมด</option>';
+                    categories.forEach(category => {
+                        const option = document.createElement('option');
+                        option.value = encodeURIComponent(category);
+                        option.textContent = `📂 ${category}`;
+                        categoryFilter.appendChild(option);
+                    });
 
-                    borrowedToolsContainer.innerHTML = "";
+                } catch (error) {
+                    console.error("Error loading categories:", error);
+                }
+            }
 
-                    if (data.length === 0) {
-                        borrowedToolsContainer.innerHTML = "<p>📭 ไม่มีอุปกรณ์ที่ถูกยืม</p>";
+            // ✅ โหลดสถิติหมวดหมู่
+            async function loadCategoryStats() {
+                try {
+                    const response = await fetch(`${API_URL}/api/category-stats`);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    
+                    const stats = await response.json();
+                    console.log("📊 สถิติหมวดหมู่:", stats);
+
+                    if (stats.length === 0) {
+                        categoryStats.innerHTML = '<div class="stat-card"><div class="stat-number">0</div><div class="stat-label">ไม่มีหมวดหมู่</div></div>';
                         return;
                     }
 
-                    const groupedData = {};
-                    data.forEach(tool => {
-                        if (!groupedData[tool.site]) {
-                            groupedData[tool.site] = [];
-                        }
-                        groupedData[tool.site].push(tool);
-                    });
+                    categoryStats.innerHTML = stats.map(stat => `
+                        <div class="stat-card">
+                            <div class="stat-number">${stat.totalQuantity}</div>
+                            <div class="stat-label">📂 ${stat._id}<br>(${stat.totalItems} รายการ)</div>
+                        </div>
+                    `).join('');
 
-                    Object.keys(groupedData).forEach(site => {
+                } catch (error) {
+                    console.error("Error loading category stats:", error);
+                    categoryStats.innerHTML = '<div class="stat-card"><div class="stat-number">❌</div><div class="stat-label">ไม่สามารถโหลดสถิติได้</div></div>';
+                }
+            }
+
+            // ✅ โหลดข้อมูลอุปกรณ์ตามหมวดหมู่
+            async function fetchBorrowedTools() {
+                try {
+                    const selectedCategory = categoryFilter.value;
+                    const url = selectedCategory === 'all' 
+                        ? `${API_URL}/borrowed-tools`
+                        : `${API_URL}/borrowed-tools/${selectedCategory}`;
+                    
+                    console.log("Fetching data from:", url);
+                    
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    
+                    const data = await response.json();
+                    console.log("API Response:", data);
+
+                    borrowedToolsContainer.innerHTML = "";
+
+                    if (Object.keys(data).length === 0) {
+                        borrowedToolsContainer.innerHTML = "<p>📭 ไม่มีอุปกรณ์ที่ถูกยืมในหมวดหมู่นี้</p>";
+                        return;
+                    }
+
+                    Object.keys(data).forEach(site => {
                         const siteSection = document.createElement("div");
                         siteSection.classList.add("site-section");
-                        siteSection.innerHTML = `<h2>🏗️ หน้างาน: ${site}</h2>`;
+                        siteSection.innerHTML = `<h2>🏗️ หมวดหมู่: ${site}</h2>`;
 
                         const tableContainer = document.createElement("div");
                         tableContainer.classList.add("table-container");
@@ -144,15 +276,17 @@
                                 <th>🛠️ อุปกรณ์</th>
                                 <th>🔢 จำนวน</th>
                                 <th>📝 หมายเหตุ</th>
+                                <th>🕐 วันที่ยืม</th>
                             </tr>
                         `;
 
-                        groupedData[site].forEach(tool => {
+                        data[site].forEach(tool => {
                             const row = document.createElement("tr");
                             row.innerHTML = `
                                 <td>${tool.name}</td>
-                                <td>${tool.quantity}</td>
+                                <td><span style="background: #e6fffa; color: #00695c; padding: 4px 8px; border-radius: 6px; font-weight: 700;">${tool.quantity}</span></td>
                                 <td>${tool.note || "ไม่มีหมายเหตุ"}</td>
+                                <td>${new Date(tool.borrowedAt).toLocaleDateString('th-TH')}</td>
                             `;
                             toolTable.appendChild(row);
                         });
@@ -163,13 +297,28 @@
                     });
 
                 } catch (error) {
-                    Swal.fire({ icon: "error", title: "เกิดข้อผิดพลาด!", text: "ไม่สามารถโหลดข้อมูลจาก API ได้" });
+                    console.error("Error:", error);
+                    borrowedToolsContainer.innerHTML = `<p style="color: red; text-align: center;">เกิดข้อผิดพลาด: ${error.message}</p>`;
+                    Swal.fire({ 
+                        icon: "error", 
+                        title: "เกิดข้อผิดพลาด!", 
+                        text: "ไม่สามารถโหลดข้อมูลจาก API ได้: " + error.message 
+                    });
                 }
             }
 
-            refreshBtn.addEventListener("click", fetchBorrowedTools);
+            // ✅ Event Listeners
+            categoryFilter.addEventListener("change", fetchBorrowedTools);
+            refreshBtn.addEventListener("click", async () => {
+                await loadCategories();
+                await loadCategoryStats();
+                await fetchBorrowedTools();
+            });
 
-            fetchBorrowedTools();
+            // ✅ เริ่มต้น
+            await loadCategories();
+            await loadCategoryStats();
+            await fetchBorrowedTools();
         });
     </script>
 </body>

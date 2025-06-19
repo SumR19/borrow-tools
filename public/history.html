@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📜 ประวัติการยืม-คืนอุปกรณ์</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-light">
+    <div class="container py-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h3><i class="fas fa-history"></i> ประวัติการยืม-คืนอุปกรณ์</h3>
+                    </div>
+                    <div class="card-body">
+                        <!-- ฟิลเตอร์ -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <select id="status-filter" class="form-select">
+                                    <option value="all">ทั้งหมด</option>
+                                    <option value="borrowed">กำลังยืม</option>
+                                    <option value="returned">คืนแล้ว</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <select id="days-filter" class="form-select">
+                                    <option value="7">7 วันที่ผ่านมา</option>
+                                    <option value="30" selected>30 วันที่ผ่านมา</option>
+                                    <option value="90">90 วันที่ผ่านมา</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-primary" onclick="loadHistory()">
+                                    <i class="fas fa-search"></i> ค้นหา
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- ตาราง -->
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>วันที่ยืม</th>
+                                        <th>อุปกรณ์</th>
+                                        <th>หน้างาน</th>
+                                        <th>จำนวน</th>
+                                        <th>สถานะ</th>
+                                        <th>วันที่คืน</th>
+                                        <th>ผู้คืน</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="history-tbody">
+                                    <tr><td colspan="7" class="text-center">กำลังโหลด...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadHistory() {
+            const status = document.getElementById('status-filter').value;
+            const days = document.getElementById('days-filter').value;
+            
+            try {
+                const response = await fetch(`/history?status=${status}&days=${days}`);
+                const history = await response.json();
+                
+                const tbody = document.getElementById('history-tbody');
+                if (history.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center">ไม่มีข้อมูล</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = history.map(item => `
+                    <tr>
+                        <td>${new Date(item.borrowedAt).toLocaleString('th-TH')}</td>
+                        <td><i class="fas fa-wrench text-primary"></i> ${item.name}</td>
+                        <td><i class="fas fa-building text-success"></i> ${item.site}</td>
+                        <td><span class="badge bg-info">${item.quantity}</span></td>
+                        <td>
+                            ${item.status === 'borrowed' 
+                                ? '<span class="badge bg-warning">กำลังยืม</span>'
+                                : '<span class="badge bg-success">คืนแล้ว</span>'
+                            }
+                        </td>
+                        <td>${item.returnedAt ? new Date(item.returnedAt).toLocaleString('th-TH') : '-'}</td>
+                        <td>${item.returnedBy || '-'}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading history:', error);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', loadHistory);
+    </script>
+</body>
+</html>
