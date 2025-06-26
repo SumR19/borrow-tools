@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📊 รายการอุปกรณ์ที่ถูกยืม</title>
+    <title> รายการอุปกรณ์ที่ถูกยืม</title>
     <link rel="icon" type="image/x-icon" href="icons/api-ui.png">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -73,7 +73,7 @@
         }
 
         .site-section h2 {
-            background: #007bff;
+            background: linear-gradient(150deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 8px;
             border-radius: 5px;
@@ -177,14 +177,14 @@
         
         <!-- ✅ เพิ่มลิงก์กลับ -->
         <div style="margin-top: 20px; text-align: center;">
-            <a href="/dashboard" style="display: inline-block; padding: 10px 20px; background: #17a2b8; color: white; text-decoration: none; border-radius: 5px; margin-left: 10px;">📊 Dashboard</a>
-            <a href="/history-page" style="display: inline-block; padding: 10px 20px; background: #ffc107; color: black; text-decoration: none; border-radius: 5px; margin-left: 10px;">📜 ประวัติ</a>
+            <a href="/history-page" style="display: inline-block; padding: 10px 20px; background: #e2c05a; color: black; text-decoration: none; border-radius: 5px; margin-left: 10px;">📜 ประวัติ</a>
         </div>
     </div>
 
     <script>
         document.addEventListener("DOMContentLoaded", async function () {
-            const API_URL = "https://yn-hiking-engage-everywhere.trycloudflare.com";
+            // ✅ ใช้ same origin
+            const API_URL = window.location.origin;
             const borrowedToolsContainer = document.getElementById("borrowed-tools");
             const categoryFilter = document.getElementById("category-filter");
             const categoryStats = document.getElementById("category-stats");
@@ -197,7 +197,7 @@
                     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     
                     const categories = await response.json();
-                    console.log("📂 หมวดหมู่ที่พบ:", categories);
+                    console.log("📂 หน้างานที่พบ:", categories);
 
                     categoryFilter.innerHTML = '<option value="all">ทั้งหมด</option>';
                     categories.forEach(category => {
@@ -219,7 +219,7 @@
                     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     
                     const stats = await response.json();
-                    console.log("📊 สถิติหมวดหมู่:", stats);
+                    console.log("📊 สถิติหน้างาน:", stats);
 
                     if (stats.length === 0) {
                         categoryStats.innerHTML = '<div class="stat-card"><div class="stat-number">0</div><div class="stat-label">ไม่มีหมวดหมู่</div></div>';
@@ -265,7 +265,7 @@
                     Object.keys(data).forEach(site => {
                         const siteSection = document.createElement("div");
                         siteSection.classList.add("site-section");
-                        siteSection.innerHTML = `<h2>🏗️ หมวดหมู่: ${site}</h2>`;
+                        siteSection.innerHTML = `<h2>🏗️ หน้างาน: ${site}</h2>`;
 
                         const tableContainer = document.createElement("div");
                         tableContainer.classList.add("table-container");

@@ -3,8 +3,13 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const path = require("path");
+const cron = require('node-cron'); // ✅ เพิ่มบรรทัดนี้
 
 const app = express();
+
+const seenIPs = new Set();
+
+app.set('trust proxy', 1); // ✅ ตั้งค่าให้ Express เชื่อถือ proxy (เช่น Nginx) ที่อยู่ข้างหน้า
 
 // ✅ ตรวจสอบว่า MONGO_URI ถูกต้องหรือไม่
 console.log("🔍 Connecting to MongoDB:", process.env.MONGO_URI);
@@ -36,18 +41,77 @@ const toolSchema = new mongoose.Schema({
     note: { type: String, default: "" },
     borrowedAt: { type: Date, default: Date.now },
     returnedAt: { type: Date, default: null },
-    status: { type: String, default: "borrowed" }, // "borrowed" หรือ "returned"
+    status: { type: String, default: "borrowed" },
     returnedBy: { type: String, default: "" },
     returnNote: { type: String, default: "" }
 });
 
+// ✅ เพิ่ม TTL Index สำหรับ Auto Delete
+toolSchema.index({ 
+    returnedAt: 1 
+}, { 
+    expireAfterSeconds: 7776000, // 90 วัน = 90 * 24 * 60 * 60
+    partialFilterExpression: { 
+        status: "returned",
+        returnedAt: { $exists: true, $ne: null }
+    }
+});
+
 const Tool = mongoose.model("Tool", toolSchema);
+
+// ✅ เพิ่มฟังก์ชัน Auto Cleanup
+async function autoCleanupOldRecords() {
+    try {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - 180); // 180 วันที่แล้ว
+        
+        console.log(`🗑️ เริ่มการลบข้อมูลเก่า (เก่ากว่า ${cutoffDate.toLocaleDateString('th-TH')})`);
+        
+        // ลบเฉพาะข้อมูลที่คืนแล้วและเก่ากว่า 180 วัน
+        const result = await Tool.deleteMany({
+            status: "returned",
+            returnedAt: { $lt: cutoffDate, $ne: null }
+        });
+        
+        const thaiTime = new Date().toLocaleString('th-TH', { 
+            timeZone: 'Asia/Bangkok',
+            dateStyle: 'full',
+            timeStyle: 'medium'
+        });
+        
+        console.log(`✅ ลบข้อมูลเก่าเรียบร้อย: ${result.deletedCount} รายการ (${thaiTime})`);
+        
+        if (result.deletedCount > 0) {
+            // แสดงสถิติหลังลบ
+            const totalBorrowed = await Tool.countDocuments({ status: "borrowed" });
+            const totalReturned = await Tool.countDocuments({ status: "returned" });
+            console.log(`📊 สถิติปัจจุบัน: ยืมอยู่ ${totalBorrowed} รายการ, คืนแล้ว ${totalReturned} รายการ`);
+        }
+        
+    } catch (error) {
+        console.error('❌ Error ในการลบข้อมูลเก่า:', error);
+    }
+}
+
+// ✅ ตั้งค่า Cron Job - ลบข้อมูลเก่าทุกวันเที่ยงคืน
+cron.schedule('0 0 * * *', autoCleanupOldRecords, {
+    timezone: "Asia/Bangkok"
+});
+
+// ✅ ตั้งค่า Cron Job - ลบข้อมูลเก่าทุกสัปดาห์ (ทางเลือก)
+// cron.schedule('0 0 * * 0', autoCleanupOldRecords, {
+//     timezone: "Asia/Bangkok"
+// });
+
+// ✅ เรียกใช้ครั้งแรกเมื่อ server เริ่มต้น
+console.log("🔄 เริ่มการตรวจสอบข้อมูลเก่าครั้งแรก...");
+setTimeout(autoCleanupOldRecords, 5000); // รอ 5 วินาที
 
 // ✅ API: ดึงหมวดหมู่หน้างานทั้งหมด (อัตโนมัติ)
 app.get("/categories", async (req, res) => {
     try {
         const categories = await Tool.distinct("site", { status: "borrowed" });
-        console.log("📂 หมวดหมู่ที่พบ:", categories);
+        console.log("📂 หน้างานที่พบ:", categories);
         res.json(categories.sort()); // เรียงตามตัวอักษร
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -66,7 +130,7 @@ app.get("/borrowed-tools/:category?", async (req, res) => {
         }
         
         const tools = await Tool.find(filter);
-        console.log(`📋 ดึงข้อมูลหมวดหมู่: ${category || 'ทั้งหมด'} จำนวน: ${tools.length} รายการ`);
+        console.log(`📋 ดึงข้อมูลจากหน้างาน: ${category || 'ทั้งหมด'} จำนวน: ${tools.length} รายการ`);
         
         // จัดกลุ่มตามหน้างาน
         const groupedBySite = tools.reduce((acc, tool) => {
@@ -98,8 +162,7 @@ app.get("/borrowed-tools", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-
-// ✅ API: สถิติตามหมวดหมู่
+/// ✅ แก้ไข API: สถิติตามหน้างาน (ปรับ console.log ให้สวย)
 app.get("/api/category-stats", async (req, res) => {
     try {
         const stats = await Tool.aggregate([
@@ -115,15 +178,66 @@ app.get("/api/category-stats", async (req, res) => {
             { $sort: { totalQuantity: -1 } }
         ]);
         
-        console.log("📊 สถิติตามหมวดหมู่:", stats);
-        res.json(stats);
+        // ✅ จัดรูปแบบข้อมูลให้แสดงผลได้
+        const formattedStats = stats.map(stat => ({
+            _id: stat._id,
+            totalItems: stat.totalItems,
+            totalQuantity: stat.totalQuantity,
+            tools: stat.tools,
+            toolsList: stat.tools.map(tool => `${tool.name} (${tool.quantity})`).join(', '),
+            uniqueTools: stat.tools.reduce((acc, tool) => {
+                const existing = acc.find(t => t.name === tool.name);
+                if (existing) {
+                    existing.quantity += tool.quantity;
+                } else {
+                    acc.push({ name: tool.name, quantity: tool.quantity });
+                }
+                return acc;
+            }, [])
+        }));
+        
+        // ✅ Version สวยพิเศษ
+        console.log('\n' + '═'.repeat(60));
+        console.log('║' + ' '.repeat(18) + '📊 สถิติอุปกรณ์ตามหน้างาน' + ' '.repeat(17) + '║');
+        console.log('═'.repeat(60));
+        
+        formattedStats.forEach((stat, index) => {
+            console.log(`\n┌─ 🏗️  หน้างาน: ${stat._id}`);
+            console.log(`├─ 📦 รายการ: ${stat.totalItems} รายการ | 🔢 จำนวน: ${stat.totalQuantity} ชิ้น`);
+            console.log(`└─ 🔧 อุปกรณ์:`);
+            
+            stat.tools.forEach((tool, toolIndex) => {
+                const isLast = toolIndex === stat.tools.length - 1;
+                const prefix = isLast ? '   └─' : '   ├─';
+                console.log(`${prefix} ${toolIndex + 1}. ${tool.name} (${tool.quantity} ชิ้น)`);
+            });
+            
+            if (index < formattedStats.length - 1) {
+                console.log('\n' + '─'.repeat(60));
+            }
+        });
+        
+        console.log('\n' + '═'.repeat(60));
+        console.log(`║ 📈 สรุปรวม: ${formattedStats.length} หน้างาน | 🔧 ทั้งหมด: ${formattedStats.reduce((sum, stat) => sum + stat.totalQuantity, 0)} ชิ้น${' '.repeat(20)}║`);
+        console.log('═'.repeat(60));
+        
+        res.json(formattedStats);
     } catch (err) {
+        console.error("❌ Error category stats:", err);
         res.status(500).json({ error: err.message });
     }
 });
-
 // ✅ API: บันทึกอุปกรณ์ที่ยืม
 app.post("/borrow", async (req, res) => {
+    // แจ้งเตือนการยืมอุปกรณ์
+    const realIP = req.get('cf-connecting-ip') || req.get('x-forwarded-for') || req.ip;
+    console.log('\n' + '🎯'.repeat(15));
+    console.log('🔧 การยืมอุปกรณ์ใหม่!');
+    console.log('🎯'.repeat(15));
+    console.log(`📍 IP: ${realIP}`);
+    console.log(`🏗️ หน้างาน: ${req.body.site}`);
+    console.log(`📊 จำนวนรายการ: ${req.body.tools?.length || 0}`);
+    
     try {
         const { site, tools, note } = req.body;
         if (!site) return res.status(400).json({ error: "ต้องระบุชื่อหน้างาน!" });
@@ -138,7 +252,6 @@ app.post("/borrow", async (req, res) => {
         console.log("📌 ข้อมูลที่ได้รับ:");
         console.log("🕐 เวลาที่ยืม:", thaiTime);
         console.log("🏗️ หน้างาน:", site);
-        console.log("📂 หมวดหมู่: ระบบจะจัดหมวดหมู่อัตโนมัติ");
         console.log("📝 หมายเหตุ:", note || "ไม่มี");
         console.log("🔧 รายการอุปกรณ์:");
         
@@ -166,6 +279,14 @@ app.post("/borrow", async (req, res) => {
 
 // ✅ API: คืนอุปกรณ์เฉพาะชิ้น (ใช้ status)
 app.post("/return-item", async (req, res) => {
+    const realIP = req.get('cf-connecting-ip') || req.get('x-forwarded-for') || req.ip;
+    console.log('\n' + '↩️'.repeat(15));
+    console.log('↩️ การคืนอุปกรณ์!');
+    console.log('↩️'.repeat(15));
+    console.log(`📍 IP: ${realIP}`);
+    console.log(`🔧 อุปกรณ์: ${req.body.name}`);
+    console.log(`🏗️ หน้างาน: ${req.body.site}`);
+    
     try {
         const { site, name, returnedBy = "ไม่ระบุ", returnNote = "" } = req.body;
         if (!site || !name) return res.status(400).json({ error: "ต้องระบุหน้างานและชื่ออุปกรณ์!" });
@@ -200,11 +321,10 @@ app.post("/return-item", async (req, res) => {
                 returnNote
             });
             
-            console.log(`✅ คืนอุปกรณ์: "${name}" 1 ชิ้น จากหมวดหมู่: "${site}" (เหลือ: ${tool.quantity - 1} ชิ้น)`);
+            console.log(`✅ คืนอุปกรณ์: "${name}" 1 ชิ้น จากหน้างาน: "${site}" (เหลือ: ${tool.quantity - 1} ชิ้น)`);
             console.log(`🕐 เวลาที่คืน: ${thaiTime}`);
-            console.log(`👤 คืนโดย: ${returnedBy}`);
             
-            res.json({ message: `คืน ${name} 1 ชิ้นจากหมวดหมู่ ${site} สำเร็จ!` });
+            res.json({ message: `คืน ${name} 1 ชิ้นจากหน้างาน ${site} สำเร็จ!` });
         } else {
             // เปลี่ยนสถานะเป็น "returned" แทนการลบ
             await Tool.updateOne(
@@ -217,9 +337,8 @@ app.post("/return-item", async (req, res) => {
                 }
             );
             
-            console.log(`✅ คืนอุปกรณ์: "${name}" ทั้งหมด จากหมวดหมู่: "${site}"`);
-            console.log(`🕐 เวลาที่คืน: ${thaiTime}`);
-            console.log(`👤 คืนโดย: ${returnedBy}`);
+            console.log(`✅ คืนอุปกรณ์: "${name}" ทั้งหมด จากหน้างาน: "${site}"`);
+            console.log(`🕐 เวลาที่คืน: ${thaiTime}`);;
             
             res.json({ message: `คืน ${name} สำเร็จจากหมวดหมู่ ${site}` });
         }
@@ -259,9 +378,8 @@ app.post("/return-all", async (req, res) => {
             }
         );
         
-        console.log(`✅ คืนอุปกรณ์: "${name}" ทั้งหমด ${tool.quantity} ชิ้น จากหมวดหมู่: "${site}"`);
+        console.log(`✅ คืนอุปกรณ์: "${name}" ทั้งหหมด ${tool.quantity} ชิ้น จากหน้างาน: "${site}"`);
         console.log(`🕐 เวลาที่คืน: ${thaiTime}`);
-        console.log(`👤 คืนโดย: ${returnedBy}`);
 
         res.json({ message: `คืน ${name} ทั้งหมดสำเร็จจากหมวดหมู่ ${site}` });
     } catch (err) {
@@ -455,10 +573,13 @@ app.get("/api-ui", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "api-ui.html"));
 });
 
-app.get("/history-page", (req, res) => {
+app.get("/history-page", (req, res) => {                                
     res.sendFile(path.join(__dirname, "public", "history.html"));
 });
 
-// ✅ Start Server
-const PORT = 3000;
-app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`🗑️ Auto Cleanup: เปิดใช้งาน (ลบข้อมูลเก่ากว่า 90 วันทุกวันเที่ยงคืน)`);
+    console.log(`📊 Manual Cleanup: GET /api/data-stats, DELETE /api/cleanup`);
+});

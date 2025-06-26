@@ -6,100 +6,374 @@
     <title>📜 ประวัติการยืม-คืนอุปกรณ์</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #10d493 0%, #1b6813 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            margin: 20px auto;
+            max-width: 1200px;
+        }
+        
+        .date-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .site-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-left: 4px solid #667eea;
+            padding: 12px 20px;
+            margin-bottom: 15px;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .site-title {
+            font-weight: 600;
+            color: #2d3748;
+            margin: 0;
+        }
+        
+        .site-times {
+            color: #718096;
+            font-size: 0.9rem;
+            margin: 0;
+        }
+        
+        .history-table {
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+        
+        .history-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            border: none;
+            padding: 12px;
+        }
+        
+        .history-table td {
+            padding: 12px;
+            vertical-align: middle;
+            border-color: #e2e8f0;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .status-returned {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-borrowed {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #6c757d;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 50px;
+            color: #6c757d;
+        }
+        
+        .nav-link {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white !important;
+            border-radius: 8px;
+            padding: 10px 20px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-block;
+            margin: 10px 5px;
+        }
+        
+        .nav-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            color: white !important;
+        }
+    </style>
 </head>
-<body class="bg-light">
-    <div class="container py-4">
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <h3><i class="fas fa-history"></i> ประวัติการยืม-คืนอุปกรณ์</h3>
-                    </div>
-                    <div class="card-body">
-                        <!-- ฟิลเตอร์ -->
-                        <div class="row mb-3">
-                            <div class="col-md-4">
-                                <select id="status-filter" class="form-select">
-                                    <option value="all">ทั้งหมด</option>
-                                    <option value="borrowed">กำลังยืม</option>
-                                    <option value="returned">คืนแล้ว</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <select id="days-filter" class="form-select">
-                                    <option value="7">7 วันที่ผ่านมา</option>
-                                    <option value="30" selected>30 วันที่ผ่านมา</option>
-                                    <option value="90">90 วันที่ผ่านมา</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <button class="btn btn-primary" onclick="loadHistory()">
-                                    <i class="fas fa-search"></i> ค้นหา
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- ตาราง -->
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead class="table-dark">
-                                    <tr>
-                                        <th>วันที่ยืม</th>
-                                        <th>อุปกรณ์</th>
-                                        <th>หน้างาน</th>
-                                        <th>จำนวน</th>
-                                        <th>สถานะ</th>
-                                        <th>วันที่คืน</th>
-                                        <th>ผู้คืน</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="history-tbody">
-                                    <tr><td colspan="7" class="text-center">กำลังโหลด...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+<body>
+    <div class="container">
+        <div class="main-container p-4">
+            <!-- Header -->
+            <div class="text-center mb-4">
+                <h1 class="display-6 fw-bold text-primary">
+                    <i class="fas fa-history me-2"></i>
+                    📜 ประวัติการยืม-คืนอุปกรณ์
+                </h1>
+                <p class="text-muted">รายละเอียดการยืม-คืนอุปกรณ์ทั้งหมด</p>
+            </div>
+
+            <!-- Navigation -->
+            <div class="text-center mb-4">
+                <a href="/dashboard.html" class="nav-link">
+                    <i class="fas fa-chart-bar me-1"></i> แดชบอร์ด
+                </a>
+                <a href="/api-ui.html" class="nav-link">
+                    <i class="fas fa-cog me-1"></i> จัดการข้อมูล
+                </a>
+            </div>
+
+            <!-- Loading -->
+            <div id="loading" class="loading">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
                 </div>
+                <p class="mt-3">กำลังโหลดข้อมูล...</p>
+            </div>
+
+            <!-- History Content -->
+            <div id="history-content" style="display: none;">
+                <!-- จะถูกสร้างด้วย JavaScript -->
+            </div>
+
+            <!-- No Data -->
+            <div id="no-data" class="no-data" style="display: none;">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <h4>ไม่มีข้อมูลประวัติ</h4>
+                <p>ยังไม่มีการยืม-คืนอุปกรณ์</p>
+                <a href="/" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i> เริ่มยืมอุปกรณ์
+                </a>
             </div>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        async function loadHistory() {
-            const status = document.getElementById('status-filter').value;
-            const days = document.getElementById('days-filter').value;
+        const API_URL = window.location.origin;
+
+        // ฟังก์ชันจัดรูปแบบวันที่
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('th-TH', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                weekday: 'long'
+            });
+        }
+
+        // ฟังก์ชันจัดรูปแบบเวลา
+        function formatTime(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleTimeString('th-TH', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+        }
+
+        // ฟังก์ชันจัดรูปแบบสถานะ
+        function formatStatus(status) {
+            const statusMap = {
+                'คืนแล้ว': { class: 'status-returned', text: 'คืนแล้ว' },
+                'ยืมอยู่': { class: 'status-borrowed', text: 'ยืมอยู่' },
+                'borrowed': { class: 'status-borrowed', text: 'ยืมอยู่' },
+                'returned': { class: 'status-returned', text: 'คืนแล้ว' }
+            };
             
+            const statusInfo = statusMap[status] || { class: 'status-borrowed', text: status };
+            return `<span class="status-badge ${statusInfo.class}">${statusInfo.text}</span>`;
+        }
+
+        // ฟังก์ชันจัดกลุ่มข้อมูล
+        function groupHistoryData(data) {
+            // 1. จัดกลุ่มตามวันที่
+            const groupedByDate = {};
+            
+            data.forEach(item => {
+                const date = new Date(item.borrowedAt).toDateString();
+                if (!groupedByDate[date]) {
+                    groupedByDate[date] = [];
+                }
+                groupedByDate[date].push(item);
+            });
+
+            // 2. เรียงวันที่จากใหม่ไปเก่า
+            const sortedDates = Object.keys(groupedByDate).sort((a, b) => new Date(b) - new Date(a));
+
+            // 3. จัดกลุ่มตามหน้างานในแต่ละวัน
+            const result = {};
+            
+            sortedDates.forEach(date => {
+                const dayData = groupedByDate[date];
+                const groupedBySite = {};
+
+                dayData.forEach(item => {
+                    if (!groupedBySite[item.site]) {
+                        groupedBySite[item.site] = [];
+                    }
+                    groupedBySite[item.site].push(item);
+                });
+
+                // เรียงหน้างานตามเวลายืมเร็วสุด
+                const sortedSites = Object.keys(groupedBySite).sort((a, b) => {
+                    const timeA = Math.min(...groupedBySite[a].map(item => new Date(item.borrowedAt)));
+                    const timeB = Math.min(...groupedBySite[b].map(item => new Date(item.borrowedAt)));
+                    return timeA - timeB;
+                });
+
+                result[date] = {};
+                sortedSites.forEach(site => {
+                    // เรียงอุปกรณ์ตามชื่อ
+                    groupedBySite[site].sort((a, b) => a.name.localeCompare(b.name, 'th'));
+                    result[date][site] = groupedBySite[site];
+                });
+            });
+
+            return result;
+        }
+
+        // ฟังก์ชันสร้าง HTML
+        function renderHistory(groupedData) {
+            let html = '';
+
+            Object.keys(groupedData).forEach(date => {
+                const dateObj = new Date(date);
+                html += `
+                    <div class="date-section mb-4">
+                        <div class="date-header">
+                            <h3 class="mb-0">
+                                <i class="fas fa-calendar-day me-2"></i>
+                                 ${formatDate(dateObj)}
+                            </h3>
+                        </div>
+                `;
+
+                Object.keys(groupedData[date]).forEach(site => {
+                    const siteData = groupedData[date][site];
+                    
+                    // รวมเวลาทั้งหมดของหน้างานเดียวกัน
+                    const times = [...new Set(siteData.map(item => formatTime(item.borrowedAt)))].sort();
+                    const timeText = times.join(', ');
+
+                    html += `
+                        <div class="site-section mb-4">
+                            <div class="site-header">
+                                <h5 class="site-title">
+                                    <i class="fas fa-map-marker-alt me-2"></i>
+                                     หน้างาน: ${site}
+                                </h5>
+                                <p class="site-times">
+                                    <i class="fas fa-clock me-1"></i>
+                                    เวลา: ${timeText}
+                                </p>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table table-hover history-table">
+                                    <thead>
+                                        <tr>
+                                            <th>อุปกรณ์</th>
+                                            <th>จำนวน</th>
+                                            <th>เวลายืม</th>
+                                            <th>เวลาคืน</th>
+                                            <th>สถานะ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                    `;
+
+                    siteData.forEach(item => {
+                        html += `
+                            <tr>
+                                <td>
+                                    <i class="fas fa-tools me-2 text-primary"></i>
+                                    ${item.name}
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">${item.quantity}</span>
+                                </td>
+                                <td>${formatTime(item.borrowedAt)}</td>
+                                <td>${formatTime(item.returnedAt)}</td>
+                                <td>${formatStatus(item.status)}</td>
+                            </tr>
+                        `;
+                    });
+
+                    html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+            });
+
+            return html;
+        }
+
+        // ฟังก์ชันโหลดข้อมูล
+        async function loadHistory() {
             try {
-                const response = await fetch(`/history?status=${status}&days=${days}`);
-                const history = await response.json();
+                console.log('🔄 กำลังโหลดประวัติ...');
                 
-                const tbody = document.getElementById('history-tbody');
-                if (history.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="text-center">ไม่มีข้อมูล</td></tr>';
+                const response = await fetch(`${API_URL}/history`);
+                const data = await response.json();
+
+                console.log('📊 ข้อมูลประวัติ:', data);
+
+                document.getElementById('loading').style.display = 'none';
+
+                if (!data || data.length === 0) {
+                    document.getElementById('no-data').style.display = 'block';
                     return;
                 }
+
+                const groupedData = groupHistoryData(data);
+                const html = renderHistory(groupedData);
                 
-                tbody.innerHTML = history.map(item => `
-                    <tr>
-                        <td>${new Date(item.borrowedAt).toLocaleString('th-TH')}</td>
-                        <td><i class="fas fa-wrench text-primary"></i> ${item.name}</td>
-                        <td><i class="fas fa-building text-success"></i> ${item.site}</td>
-                        <td><span class="badge bg-info">${item.quantity}</span></td>
-                        <td>
-                            ${item.status === 'borrowed' 
-                                ? '<span class="badge bg-warning">กำลังยืม</span>'
-                                : '<span class="badge bg-success">คืนแล้ว</span>'
-                            }
-                        </td>
-                        <td>${item.returnedAt ? new Date(item.returnedAt).toLocaleString('th-TH') : '-'}</td>
-                        <td>${item.returnedBy || '-'}</td>
-                    </tr>
-                `).join('');
-            } catch (error) {
-                console.error('Error loading history:', error);
+                document.getElementById('history-content').innerHTML = html;
+                document.getElementById('history-content').style.display = 'block';
+
+                console.log('✅ โหลดประวัติสำเร็จ');
+
+            } catch (error) {   
+                console.error('❌ Error loading history:', error);
+                document.getElementById('loading').innerHTML = `
+                    <div class="text-danger">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                        <h4>เกิดข้อผิดพลาด</h4>
+                        <p>ไม่สามารถโหลดข้อมูลได้: ${error.message}</p>
+                        <button class="btn btn-primary" onclick="loadHistory()">
+                            <i class="fas fa-redo me-1"></i> ลองใหม่
+                        </button>
+                    </div>
+                `;
             }
         }
-        
+
+        // เริ่มต้นโหลดข้อมูล
         document.addEventListener('DOMContentLoaded', loadHistory);
     </script>
 </body>
