@@ -20,9 +20,14 @@ document.addEventListener("DOMContentLoaded", function () {
     console.log("- noteInput:", noteInput);
     console.log("- searchTool:", searchTool);
     console.log("- borrowForm:", borrowForm);
+    
+    // ✅ เพิ่ม WebSocket connection
+    const socket = io(API_URL);
+    
+    // ✅ เพิ่มตัวแปรสำหรับ API integration
+    let availableTools = []; // จะโหลดจาก API
+    let allTools = []; // เก็บรายการเต็มสำหรับการค้นหา
 
-
-    // ✅ แก้ไข toolNames array
     const toolNames = [
         // 🔧 เครื่องมือเจาะ/สว่าน
         "สว่าน (แบต)",
@@ -127,8 +132,225 @@ document.addEventListener("DOMContentLoaded", function () {
         "บุ้งกี๋"
     ];
 
+        // เพิ่มฟังก์ชันนี้หลัง toolNames array
+    function getToolOrderFromArray(toolName) {
+        const index = toolNames.findIndex(name => name === toolName);
+        return index >= 0 ? index : 999; // ถ้าไม่เจอให้อยู่ท้ายสุด
+    }
+
+        // หลัง toolNames array
+    
+    // ✅ WebSocket Event Listeners
+    socket.on('connect', () => {
+        console.log('🔌 เชื่อมต่อ WebSocket สำเร็จ (หน้าหลัก)');
+    });
+    
+    socket.on('disconnect', () => {
+        console.log('🔌 WebSocket ตัดการเชื่อมต่อ');
+    });
+    
+    socket.on('toolAdded', (data) => {
+        console.log('✨ อุปกรณ์ใหม่เพิ่มแล้ว:', data.tool.name);
+        loadAvailableTools(); // รีโหลดรายการทันที
+        showNewToolNotification(data.tool.name);
+    });
+    
+    socket.on('toolUpdated', (data) => {
+        console.log('✏️ อุปกรณ์ถูกแก้ไข:', data.tool.name);
+        loadAvailableTools(); // รีโหลดรายการทันที
+    });
+    
+    socket.on('toolDeleted', (data) => {
+        console.log('🗑️ อุปกรณ์ถูกลบ:', data.toolName);
+        loadAvailableTools(); // รีโหลดรายการทันที
+        showDeleteToolNotification(data.toolName);
+    });
+
+    // แก้ไขส่วนการเรียงลำดับใน loadAvailableTools()
+    async function loadAvailableTools() {
+        try {
+            console.log('🔄 กำลังโหลดรายการอุปกรณ์จาก API...');
+            
+            const response = await fetch(`${API_URL}/api/tools/catalog`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            
+            if (result.success && result.data) {
+                // ✅ เรียงลำดับตาม toolNames array ก่อน
+                const sortedTools = result.data.sort((a, b) => {
+                    const orderA = getToolOrderFromArray(a.name);
+                    const orderB = getToolOrderFromArray(b.name);
+                    
+                    // 1. เรียงตามลำดับใน toolNames array
+                    if (orderA !== orderB) {
+                        return orderA - orderB;
+                    }
+                    
+                    // 2. ถ้าลำดับเท่ากัน เรียงตาม isNew
+                    if (a.isNew && !b.isNew) return -1;
+                    if (!a.isNew && b.isNew) return 1;
+                    
+                    // 3. ถ้า isNew เท่ากัน เรียงตาม usageCount
+                    if (a.usageCount !== b.usageCount) {
+                        return b.usageCount - a.usageCount;
+                    }
+                    
+                    // 4. สุดท้ายเรียงตัวอักษร
+                    return a.name.localeCompare(b.name, 'th');
+                });
+                
+                availableTools = sortedTools;
+                allTools = [...sortedTools];
+                displayToolsFromAPI(availableTools);
+                console.log(`✅ โหลดอุปกรณ์จาก API สำเร็จ: ${availableTools.length} รายการ (เรียงตาม toolNames)`);
+                
+            } else {
+                throw new Error(result.error || 'ไม่สามารถโหลดรายการอุปกรณ์ได้');
+            }
+        } catch (error) {
+            console.error('❌ Error loading tools from API:', error);
+            console.log('🔄 ใช้ข้อมูลสำรองจาก toolNames array...');
+            
+            // ✅ Fallback: ใช้ loadTools() เดิมถ้า API ไม่ทำงาน
+            loadToolsOriginal();
+        }
+    }
+    
+    // ✅ ฟังก์ชันแสดงรายการจาก API
+    function displayToolsFromAPI(tools) {
+        if (!toolsList) {
+            console.warn("⚠️ toolsList element not found");
+            return;
+        }
+    
+        if (tools.length === 0) {
+            toolsList.innerHTML = `
+                <div style="text-align: center; padding: 40px; grid-column: 1 / -1; color: #666;">
+                    <h3>ไม่มีรายการอุปกรณ์</h3>
+                    <p>กรุณาติดต่อผู้ดูแลระบบ</p>
+                </div>
+            `;
+            return;
+        }
+    
+        toolsList.innerHTML = tools.map(tool => {
+            const toolName = typeof tool === 'string' ? tool : tool.name;
+            const isNew = typeof tool === 'object' && tool.isNew;
+            const usageCount = typeof tool === 'object' ? tool.usageCount || 0 : 0;
+            
+            // สร้าง badge "ใหม่" ถ้าต้องการ
+            const newBadge = isNew ? `
+                <div class="new-badge" style="
+                    position: absolute;
+                    top: 8px;
+                    right: 8px;
+                    background: linear-gradient(45deg, #ff6b6b, #feca57);
+                    color: white;
+                    padding: 4px 8px;
+                    border-radius: 12px;
+                    font-size: 11px;
+                    font-weight: 600;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                    animation: pulse 2s infinite;
+                ">✨ ใหม่</div>
+            ` : '';
+            
+            const toolId = toolName.replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+            
+            return `
+                <div class="tool-card ${isNew ? 'new-tool' : ''}" data-tool-name="${toolName}" style="position: relative;">
+                    ${newBadge}
+                    <input type="checkbox" name="tools" value="${toolName}" id="tool-${toolId}">
+                    <label for="tool-${toolId}">${toolName}</label>
+                    ${usageCount > 0 ? `
+                        <div class="tool-stats" style="font-size: 12px; color: #666; margin: 4px 0;">
+                            ยืม ${usageCount} ครั้ง
+                        </div>
+                    ` : ''}
+                    <input type="number" class="tool-quantity" min="1" max="99" value="1" onclick="event.stopPropagation()">
+                </div>
+            `;
+        }).join("");
+        
+        // ✅ เรียก attachCardClickListeners หลังจากสร้าง DOM เสร็จ
+        attachCardClickListeners();
+        
+        console.log(`✅ แสดงรายการอุปกรณ์จาก API: ${tools.length} รายการ`);
+    }
+    
+    // ✅ แสดง Notification อุปกรณ์ใหม่
+    function showNewToolNotification(toolName) {
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-weight: 600;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        `;
+        toast.innerHTML = `✨ อุปกรณ์ใหม่: ${toolName}`;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => toast.style.transform = 'translateX(0)', 100);
+        setTimeout(() => toast.style.transform = 'translateX(400px)', 4000);
+        setTimeout(() => document.body.removeChild(toast), 4500);
+    }
+    
+    // ✅ แสดง Notification ลบอุปกรณ์
+    function showDeleteToolNotification(toolName) {
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-weight: 600;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        `;
+        toast.innerHTML = `🗑️ ลบอุปกรณ์: ${toolName}`;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => toast.style.transform = 'translateX(0)', 100);
+        setTimeout(() => toast.style.transform = 'translateX(400px)', 4000);
+        setTimeout(() => document.body.removeChild(toast), 4500);
+    }
+
     // ✅ สร้าง tool cards
+    // ✅ แก้ไข loadTools() ให้พยายามโหลดจาก API ก่อน
     function loadTools() {
+        console.log("🔄 เริ่มโหลดรายการอุปกรณ์...");
+        
+        // ลองโหลดจาก API ก่อน
+        loadAvailableTools().catch(() => {
+            // ถ้า API ไม่ทำงาน ใช้ hardcode
+            console.log("🔄 ใช้ข้อมูลสำรอง (hardcode)...");
+            loadToolsOriginal();
+        });
+    }
+
+    // ✅ เปลี่ยนชื่อฟังก์ชันเดิมเป็น loadToolsOriginal()
+    function loadToolsOriginal() {
         if (!toolsList) {
             console.warn("⚠️ toolsList element not found");
             return;
@@ -144,7 +366,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // ✅ เพิ่ม Event Listener สำหรับการกดที่การ์ด
         attachCardClickListeners();
         
-        console.log("✅ โหลดรายการอุปกรณ์เสร็จสิ้น");
+        console.log("✅ โหลดรายการอุปกรณ์เสร็จสิ้น (hardcode)");
     }
 
     // ✅ แทนที่ฟังก์ชัน attachCardClickListeners() เดิม
@@ -220,19 +442,31 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // ✅ ฟังก์ชันค้นหาอุปกรณ์
+    // แก้ไขฟังก์ชันค้นหาให้รักษาลำดับจาก toolNames
     if (searchTool) {
         searchTool.addEventListener("input", function () {
             const searchTerm = this.value.toLowerCase();
-            const tools = document.querySelectorAll("#tools-list .tool-card");
-
-            tools.forEach(tool => {
-                const toolName = tool.textContent.toLowerCase();
-                if (toolName.includes(searchTerm)) {
-                    tool.style.display = "block";
-                } else {
-                    tool.style.display = "none";
-                }
+            
+            if (!searchTerm) {
+                // ถ้าไม่มีการค้นหา แสดงทั้งหมดตามลำดับเดิม
+                displayToolsFromAPI(availableTools);
+                return;
+            }
+            
+            // กรองและรักษาลำดับจาก toolNames
+            const filteredTools = availableTools.filter(tool => {
+                const toolName = typeof tool === 'string' ? tool : tool.name;
+                return toolName.toLowerCase().includes(searchTerm);
             });
+            
+            // ✅ เรียงตามลำดับใน toolNames
+            filteredTools.sort((a, b) => {
+                const nameA = typeof a === 'string' ? a : a.name;
+                const nameB = typeof b === 'string' ? b : b.name;
+                return getToolOrderFromArray(nameA) - getToolOrderFromArray(nameB);
+            });
+            
+            displayToolsFromAPI(filteredTools);
         });
     }
 
@@ -429,14 +663,17 @@ document.addEventListener("DOMContentLoaded", function () {
                 siteHeader.classList.add("site-header");
                 siteHeader.innerHTML = `
                     <h3 style="
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        color: white;
+                        background: rgba(255, 255, 255, 0.08);
+                        backdrop-filter: blur(10px);
+                        -webkit-backdrop-filter: blur(10px);
+                        border: 1px solid rgba(255, 255, 255, 0.15);
+                        color: #E2E8F0;
                         padding: 15px 20px;
                         border-radius: 12px;
                         margin: 0 0 15px 0;
                         font-size: 1.3rem;
                         text-align: center;
-                        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+                        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
                         display: flex;
                         align-items: center;
                         justify-content: center;
@@ -444,11 +681,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     ">
                         🏗️ หน้างาน: ${site} 
                         <span style="
-                            background: rgba(255,255,255,0.2);
+                            background: rgba(255, 215, 0, 0.15);
+                            color: #FFD700;
                             padding: 4px 12px;
                             border-radius: 20px;
                             font-size: 0.9rem;
                             font-weight: 600;
+                            border: 1px solid rgba(255, 215, 0, 0.3);
                         ">
                             ${data[site].length} รายการ
                         </span>
@@ -467,12 +706,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 // ✅ หัวตาราง
                 toolTable.innerHTML = `
                     <thead>
-                        <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                            <th style="padding: 15px; text-align: left; font-weight: 600;">🛠️ อุปกรณ์</th>
-                            <th style="padding: 15px; text-align: center; font-weight: 600; width: 120px;">🔢 จำนวน</th>
-                            <th style="padding: 15px; text-align: left; font-weight: 600;">📝 หมายเหตุ</th>
-                            <th style="padding: 15px; text-align: center; font-weight: 600; width: 120px;">🕐 วันที่ยืม</th>
-                            <th style="padding: 15px; text-align: center; font-weight: 600; width: 200px;">⚡ การจัดการ</th>
+                        <tr style="background: rgba(255, 255, 255, 0.05);">
+                            <th style="padding: 15px; text-align: left; font-weight: 600; color: #FFD700;">🛠️ อุปกรณ์</th>
+                            <th style="padding: 15px; text-align: center; font-weight: 600; width: 120px; color: #FFD700;">🔢 จำนวน</th>
+                            <th style="padding: 15px; text-align: left; font-weight: 600; color: #FFD700;">📝 หมายเหตุ</th>
+                            <th style="padding: 15px; text-align: center; font-weight: 600; width: 120px; color: #FFD700;">🕐 วันที่ยืม</th>
+                            <th style="padding: 15px; text-align: center; font-weight: 600; width: 200px; color: #FFD700;">⚡ การจัดการ</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -493,7 +732,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         ">
                                             #${toolIndex + 1}
                                         </span>
-                                        <strong>${tool.name}</strong>
+                                        <strong style="color: #000000ff;">${tool.name}</strong>
                                     </div>
                                 </td>
                                 <td style="padding: 15px; text-align: center;">
@@ -515,15 +754,15 @@ document.addEventListener("DOMContentLoaded", function () {
                                             padding: 8px 12px;
                                             border-radius: 8px;
                                             font-style: italic;
-                                            color: #495057;
+                                            color: #000000ff;
                                             border-left: 4px solid #667eea;
                                         ">
                                             ${tool.note}
                                         </div>
-                                    ` : '<span style="color: #6c757d;">ไม่มีหมายเหตุ</span>'}
+                                    ` : '<span style="color: #000000ff;">ไม่มีหมายเหตุ</span>'}
                                 </td>
                                 <td style="padding: 15px; text-align: center;">
-                                    <div style="font-size: 0.9rem; color: #495057;">
+                                    <div style="font-size: 0.9rem; color: #000000ff;">
                                         ${new Date(tool.borrowedAt).toLocaleDateString('th-TH', {
                                             year: 'numeric',
                                             month: 'short',
@@ -604,24 +843,43 @@ document.addEventListener("DOMContentLoaded", function () {
             const summaryDiv = document.createElement("div");
             summaryDiv.style.marginTop = "30px";
             summaryDiv.style.padding = "20px";
-            summaryDiv.style.background = "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
-            summaryDiv.style.color = "white";
+            summaryDiv.style.background = "rgba(255, 255, 255, 0.08)";
+            summaryDiv.style.backdropFilter = "blur(15px)";
+            summaryDiv.style.webkitBackdropFilter = "blur(15px)";
+            summaryDiv.style.border = "1px solid rgba(255, 255, 255, 0.15)";
+            summaryDiv.style.color = "#E2E8F0";
             summaryDiv.style.borderRadius = "12px";
             summaryDiv.style.textAlign = "center";
+            summaryDiv.style.boxShadow = "0 8px 32px rgba(0, 0, 0, 0.3)";
             summaryDiv.innerHTML = `
-                <h4 style="margin: 0 0 15px 0; font-size: 1.2rem;">📊 สรุปรวม</h4>
+                <h4 style="margin: 0 0 15px 0; font-size: 1.2rem; color: #FFD700;">📊 สรุปรวม</h4>
                 <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px;">
-                    <div>
-                        <div style="font-size: 2rem; font-weight: bold;">${totalSites}</div>
-                        <div style="font-size: 0.9rem; opacity: 0.9;">หน้างาน</div>
+                    <div style="
+                        padding: 10px;
+                        background: rgba(255, 215, 0, 0.1);
+                        border-radius: 8px;
+                        border: 1px solid rgba(255, 215, 0, 0.2);
+                    ">
+                        <div style="font-size: 2rem; font-weight: bold; color: #FFD700;">${totalSites}</div>
+                        <div style="font-size: 0.9rem; opacity: 0.8;">หน้างาน</div>
                     </div>
-                    <div>
-                        <div style="font-size: 2rem; font-weight: bold;">${totalTools}</div>
-                        <div style="font-size: 0.9rem; opacity: 0.9;">รายการอุปกรณ์</div>
+                    <div style="
+                        padding: 10px;
+                        background: rgba(255, 215, 0, 0.1);
+                        border-radius: 8px;
+                        border: 1px solid rgba(255, 215, 0, 0.2);
+                    ">
+                        <div style="font-size: 2rem; font-weight: bold; color: #FFD700;">${totalTools}</div>
+                        <div style="font-size: 0.9rem; opacity: 0.8;">รายการอุปกรณ์</div>
                     </div>
-                    <div>
-                        <div style="font-size: 2rem; font-weight: bold;">${totalQuantity}</div>
-                        <div style="font-size: 0.9rem; opacity: 0.9;">ชิ้นทั้งหมด</div>
+                    <div style="
+                        padding: 10px;
+                        background: rgba(255, 215, 0, 0.1);
+                        border-radius: 8px;
+                        border: 1px solid rgba(255, 215, 0, 0.2);
+                    ">
+                        <div style="font-size: 2rem; font-weight: bold; color: #FFD700;">${totalQuantity}</div>
+                        <div style="font-size: 0.9rem; opacity: 0.8;">ชิ้นทั้งหมด</div>
                     </div>
                 </div>
             `;
@@ -692,7 +950,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     // ลดจำนวน พร้อม animation
                                     quantityDisplay.textContent = `${currentQuantity - 1} ชิ้น`;
                                     quantityDisplay.classList.add('pulse');
-                                    
+
                                     // แสดง animation สีเขียว
                                     quantityDisplay.style.background = '#d4edda';
                                     quantityDisplay.style.color = '#155724';
@@ -708,12 +966,14 @@ document.addEventListener("DOMContentLoaded", function () {
                                         row.remove();
                                         // ตรวจสอบว่ายังมีอุปกรณ์ในหน้างานนี้หรือไม่
                                         checkAndUpdateSiteSection(site);
+                                        // ✅ อัปเดตสถิติรวมหลังจากลบแถวแล้ว
+                                        updateSummaryStats();
                                     }, 500);
                                 }
                             }
                         }
                         
-                        // ✅ อัปเดตสถิติรวม
+                        // ✅ อัปเดตสถิติรวมทันที
                         updateSummaryStats();
                         
                     } else {
@@ -786,11 +1046,10 @@ document.addEventListener("DOMContentLoaded", function () {
                                 row.remove();
                                 // ตรวจสอบว่ายังมีอุปกรณ์ในหน้างานนี้หรือไม่
                                 checkAndUpdateSiteSection(site);
+                                // ✅ อัปเดตสถิติรวมหลังจากลบแถวแล้ว
+                                updateSummaryStats();
                             }, 500);
                         }
-                        
-                        // ✅ อัปเดตสถิติรวม
-                        updateSummaryStats();
                         
                     } else {
                         Swal.fire({ icon: "error", title: "คืนอุปกรณ์ไม่สำเร็จ!", text: apiResult.error });
@@ -882,19 +1141,34 @@ document.addEventListener("DOMContentLoaded", function () {
         const summaryDivs = document.querySelectorAll('div[style*="สรุปรวม"]');
         summaryDivs.forEach(summaryDiv => {
             summaryDiv.innerHTML = `
-                <h4 style="margin: 0 0 15px 0; font-size: 1.2rem;">📊 สรุปรวม</h4>
+                <h4 style="margin: 0 0 15px 0; font-size: 1.2rem; color: #FFD700;">📊 สรุปรวม</h4>
                 <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px;">
-                    <div class="pulse">
-                        <div style="font-size: 2rem; font-weight: bold;">${allSections.length}</div>
-                        <div style="font-size: 0.9rem; opacity: 0.9;">หน้างาน</div>
+                    <div class="pulse" style="
+                        padding: 10px;
+                        background: rgba(255, 215, 0, 0.1);
+                        border-radius: 8px;
+                        border: 1px solid rgba(255, 215, 0, 0.2);
+                    ">
+                        <div style="font-size: 2rem; font-weight: bold; color: #FFD700;">${allSections.length}</div>
+                        <div style="font-size: 0.9rem; opacity: 0.8; color: #E2E8F0;">หน้างาน</div>
                     </div>
-                    <div class="pulse">
-                        <div style="font-size: 2rem; font-weight: bold;">${allRows.length}</div>
-                        <div style="font-size: 0.9rem; opacity: 0.9;">รายการอุปกรณ์</div>
+                    <div class="pulse" style="
+                        padding: 10px;
+                        background: rgba(255, 215, 0, 0.1);
+                        border-radius: 8px;
+                        border: 1px solid rgba(255, 215, 0, 0.2);
+                    ">
+                        <div style="font-size: 2rem; font-weight: bold; color: #FFD700;">${allRows.length}</div>
+                        <div style="font-size: 0.9rem; opacity: 0.8; color: #E2E8F0;">รายการอุปกรณ์</div>
                     </div>
-                    <div class="pulse">
-                        <div style="font-size: 2rem; font-weight: bold;">${totalQuantity}</div>
-                        <div style="font-size: 0.9rem; opacity: 0.9;">ชิ้นทั้งหมด</div>
+                    <div class="pulse" style="
+                        padding: 10px;
+                        background: rgba(255, 215, 0, 0.1);
+                        border-radius: 8px;
+                        border: 1px solid rgba(255, 215, 0, 0.2);
+                    ">
+                        <div style="font-size: 2rem; font-weight: bold; color: #FFD700;">${totalQuantity}</div>
+                        <div style="font-size: 0.9rem; opacity: 0.8; color: #E2E8F0;">ชิ้นทั้งหมด</div>
                     </div>
                 </div>
             `;
@@ -917,4 +1191,6 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/sw.js")
         .then(() => console.log("✅ Service Worker ลงทะเบียนเรียบร้อย!"))
         .catch(err => console.log("❌ Service Worker ลงทะเบียนล้มเหลว:", err));
+} else {
+    console.log("🚧 Service Worker ปิดใช้งานใน development");
 }

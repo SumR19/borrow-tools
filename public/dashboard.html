@@ -3,129 +3,863 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Admin Dashboard - ระบบยืม-คืนอุปกรณ์</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>📊 แดชบอร์ด - ระบบยืม-คืนอุปกรณ์</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+        /* Dashboard Header */
+        .dashboard-header {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 165, 0, 0.1) 100%);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
         }
-        .dashboard-card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
+
+        .dashboard-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
         }
-        .dashboard-card:hover {
-            transform: translateY(-5px);
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
+
+        .dashboard-title {
+            position: relative;
+            z-index: 2;
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .dashboard-subtitle {
+            position: relative;
+            z-index: 2;
+            color: #E2E8F0;
+            font-size: 1.2rem;
+            opacity: 0.8;
+        }
+
+        /* Enhanced Stat Cards */
         .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 165, 0, 0.05) 100%);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .chart-container {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 165, 0, 0.1) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            border-color: #FFD700;
+            box-shadow: 0 20px 40px rgba(255, 215, 0, 0.3);
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-icon {
+            font-size: 3.5rem;
             margin-bottom: 20px;
+            filter: drop-shadow(0 4px 8px rgba(255, 215, 0, 0.3));
+            position: relative;
+            z-index: 2;
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .stat-label {
+            color: #E2E8F0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            opacity: 0.9;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Enhanced Charts */
+        .chart-container {
+            background: rgba(255, 255, 255, 0.98);
+            border: 2px solid rgba(255, 215, 0, 0.2);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chart-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #FFD700 0%, #FFA500 50%, #FFD700 100%);
+        }
+
+        .chart-title {
+            color: #2d3748;
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-title .icon {
+            color: #FFD700;
+            font-size: 1.5rem;
+        }
+
+        /* === ACTIVITY SECTION STYLES === */
+        .activity-section {
+            margin-top: 2rem;
+        }
+
+        .premium-activity-card {
+            border: 2px solid rgba(255, 215, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .activity-header {
+            background: rgba(255, 215, 0, 0.1);
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .activity-title {
+            margin: 0;
+            color: #FFD700;
+            font-size: 1.4rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .activity-icon {
+            font-size: 1.5rem;
+            filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.5));
+        }
+
+        .refresh-btn {
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            color: #0A192F;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
+        }
+
+        /* Premium Table */
+        .activity-table-wrapper {
+            padding: 1.5rem;
+        }
+
+        .premium-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .premium-table thead tr {
+            background: rgba(255, 215, 0, 0.1);
+        }
+
+        .premium-table th {
+            padding: 1rem;
+            color: #FFD700;
+            font-weight: 600;
+            text-align: left;
+            border-bottom: 2px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .premium-table td {
+            padding: 1rem;
+            color: #E2E8F0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .premium-table tr:hover {
+            background: rgba(255, 215, 0, 0.05);
+        }
+
+        .table-icon {
+            margin-right: 0.5rem;
+            filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.3));
+        }
+
+        .loading-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* ===== SINGLE PAGE LAYOUT ===== */
+        .dashboard-main {
+            height: calc(100vh - 120px);
+            overflow: hidden;
+        }
+
+        .single-page-container {
+            height: 100%;
+            max-width: 1600px;
+            padding: 0 1rem;
+        }
+
+        /* Compact Navigation */
+        .compact-nav {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-link-compact {
+            padding: 0.75rem 1.25rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 25px;
+            color: #FFD700;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-link-compact:hover {
+            background: rgba(255, 215, 0, 0.1);
+            border-color: rgba(255, 215, 0, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+        }
+
+        .refresh-btn-compact {
+            padding: 0.75rem 1.25rem;
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            color: #0A192F;
+            border: none;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .refresh-btn-compact:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
+        }
+
+        /* Single Page Grid - 3 Column Layout */
+        .single-page-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1.5rem;
+            height: calc(100% - 80px);
+        }
+
+        /* Left Column - Line Chart */
+        .left-column {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Middle Column - Stats */
+        .middle-column {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Right Column - Doughnut Chart + Activity */
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Compact Stats - 2x2 Grid */
+        .compact-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .mini-stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mini-stat-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(255, 215, 0, 0.5);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.2);
+        }
+
+        .mini-stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.3));
+        }
+
+        .mini-stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #FFD700;
+            margin-bottom: 0.25rem;
+        }
+
+        .mini-stat-label {
+            color: #94A3B8;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        /* Compact Chart */
+        .compact-chart {
+            flex: 1;
+        }
+
+        .compact-chart-container {
+            height: 100%;
+            border: 2px solid rgba(255, 215, 0, 0.2);
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(15px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-header-compact {
+            background: rgba(255, 215, 0, 0.1);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .chart-title-compact {
+            margin: 0;
+            color: #FFD700;
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .chart-content-compact {
+            flex: 1;
+            padding: 1rem;
+            position: relative;
+        }
+
+        /* Right Column */
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Mini Chart */
+        .mini-chart-container {
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 215, 0, 0.2);
+            border-radius: 15px;
+            backdrop-filter: blur(15px);
+            height: 250px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .full-height-chart {
+            height: 100% !important;
+        }
+
+        .mini-chart-header {
+            background: rgba(255, 215, 0, 0.1);
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .mini-chart-title {
+            margin: 0;
+            color: #FFD700;
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .mini-chart-content {
+            flex: 1;
+            padding: 1rem;
+            position: relative;
+        }
+
+        /* Compact Activity */
+        .compact-activity {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 215, 0, 0.2);
+            border-radius: 15px;
+            backdrop-filter: blur(15px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .activity-header-compact {
+            background: rgba(255, 215, 0, 0.1);
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .activity-title-compact {
+            margin: 0;
+            color: #FFD700;
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .activity-list {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            max-height: calc(100% - 60px);
+        }
+
+        .activity-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 215, 0, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .activity-item:hover {
+            background: rgba(255, 215, 0, 0.05);
+            border-color: rgba(255, 215, 0, 0.3);
+            transform: translateX(3px);
+        }
+
+        .activity-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .activity-time {
+            color: #94A3B8;
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .activity-tool {
+            color: #E2E8F0;
+            font-weight: 500;
+        }
+
+        .activity-site {
+            color: #94A3B8;
+            font-size: 0.9rem;
+        }
+
+        .activity-quantity {
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            color: #0A192F;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        .activity-note {
+            color: #94A3B8;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        .loading-item, .empty-item, .error-item {
+            text-align: center;
+            color: #94A3B8;
+            padding: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        /* Responsive for Single Page - 3 Column */
+        @media (max-width: 1200px) {
+            .single-page-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+            
+            .right-column {
+                grid-column: span 2;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+            
+            .compact-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 900px) {
+            .single-page-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .right-column {
+                grid-column: span 1;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .dashboard-main {
+                height: auto;
+                overflow: visible;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .compact-stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.75rem;
+            }
+            
+            .compact-nav {
+                gap: 0.5rem;
+            }
+            
+            .nav-link-compact, .refresh-btn-compact {
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+            }
+            
+            .mini-stat-card {
+                padding: 1rem;
+            }
+            
+            .mini-stat-icon {
+                font-size: 2rem;
+            }
+            
+            .mini-stat-number {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Responsive Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-title {
+                font-size: 2.5rem;
+            }
+            
+            .stat-number {
+                font-size: 2.5rem;
+            }
         }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-dark bg-dark">
-        <div class="container-fluid">
-            <span class="navbar-brand">
-                <i class="fas fa-tachometer-alt"></i> Admin Dashboard
-            </span>
-            <div>
-                <a href="/api-ui" class="btn btn-outline-light btn-sm">
-                    <i class="fas fa-list"></i> รายการยืม
-                </a>
-            </div>
+    <!-- Premium Dashboard Header -->
+    <header class="dashboard-header">
+        <div class="container">
+            <h1 class="dashboard-title">📊 แดชบอร์ด</h1>
+            <p class="dashboard-subtitle">ระบบจัดการอุปกรณ์การก่อสร้าง</p>
         </div>
-    </nav>
+    </header>
 
-    <div class="container-fluid py-4">
-        <!-- Stats Cards -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card dashboard-card stat-card">
-                    <div class="card-body text-center">
-                        <i class="fas fa-tools fa-3x mb-3"></i>
-                        <h3 id="total-tools">-</h3>
-                        <p class="mb-0">อุปกรณ์ทั้งหมด</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card dashboard-card stat-card">
-                    <div class="card-body text-center">
-                        <i class="fas fa-building fa-3x mb-3"></i>
-                        <h3 id="total-sites">-</h3>
-                        <p class="mb-0">หน้างานทั้งหมด</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card dashboard-card stat-card">
-                    <div class="card-body text-center">
-                        <i class="fas fa-clock fa-3x mb-3"></i>
-                        <h3 id="recent-borrows">-</h3>
-                        <p class="mb-0">การยืมล่าสุด</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card dashboard-card stat-card">
-                    <div class="card-body text-center">
-                        <i class="fas fa-chart-line fa-3x mb-3"></i>
-                        <h3 id="active-percentage">-</h3>
-                        <p class="mb-0">อัตราการใช้งาน</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <main class="dashboard-main">
+        <div class="container single-page-container">
+            <!-- Compact Navigation -->
+            <nav class="compact-nav">
+                <a href="/" class="nav-link-compact">🏠 หน้าหลัก</a>
+                <a href="/api-ui.html" class="nav-link-compact">📊 รายการยืม</a>
+                <a href="/history.html" class="nav-link-compact">📜 ประวัติ</a>
+                <a href="/admin.html" class="nav-link-compact">⚙️ จัดการ</a>
+                <button class="refresh-btn-compact" onclick="refreshDashboard()">
+                    <span class="refresh-icon">🔄</span> รีเฟรช
+                </button>
+            </nav>
 
-        <!-- Charts -->
-        <div class="row">
-            <div class="col-md-8">
-                <div class="chart-container">
-                    <h5><i class="fas fa-chart-bar"></i> การยืมรายวัน (7 วันย้อนหลัง)</h5>
-                    <canvas id="dailyChart"></canvas>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="chart-container">
-                    <h5><i class="fas fa-chart-pie"></i> อุปกรณ์ยอดนิยม</h5>
-                    <canvas id="topToolsChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Recent Activity -->
-        <div class="row">
-            <div class="col-12">
-                <div class="card dashboard-card">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="fas fa-history"></i> กิจกรรมล่าสุด</h5>
+            <!-- Single Page Dashboard Grid - 3 Columns -->
+            <div class="single-page-grid">
+                <!-- Left Column: Line Chart -->
+                <div class="left-column">
+                    <div class="compact-chart">
+                        <div class="chart-container compact-chart-container">
+                            <div class="chart-header-compact">
+                                <h3 class="chart-title-compact">
+                                    <span class="chart-icon">📊</span> การยืมรายวัน (7 วันย้อนหลัง)
+                                </h3>
+                            </div>
+                            <div class="chart-content-compact">
+                                <canvas id="dailyChart"></canvas>
+                            </div>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div id="recent-activity" class="table-responsive">
-                            <table class="table table-hover">
+                </div>
+
+                <!-- Middle Column: Stats -->
+                <div class="middle-column">
+                    <div class="compact-stats">
+                        <div class="mini-stat-card">
+                            <div class="mini-stat-icon">�️</div>
+                            <div class="mini-stat-number" id="total-tools">-</div>
+                            <div class="mini-stat-label">อุปกรณ์</div>
+                        </div>
+                        <div class="mini-stat-card">
+                            <div class="mini-stat-icon">🏗️</div>
+                            <div class="mini-stat-number" id="total-sites">-</div>
+                            <div class="mini-stat-label">หน้างาน</div>
+                        </div>
+                        <div class="mini-stat-card">
+                            <div class="mini-stat-icon">🕐</div>
+                            <div class="mini-stat-number" id="recent-borrows">-</div>
+                            <div class="mini-stat-label">การยืมล่าสุด</div>
+                        </div>
+                        <div class="mini-stat-card">
+                            <div class="mini-stat-icon">�</div>
+                            <div class="mini-stat-number" id="active-percentage">-</div>
+                            <div class="mini-stat-label">อัตราการใช้</div>
+                        </div>
+                    </div>
+
+                    <!-- Compact Activity in Middle -->
+                    <div class="compact-activity">
+                        <div class="activity-header-compact">
+                            <h4 class="activity-title-compact">
+                                <span class="activity-icon">📋</span> กิจกรรมล่าสุด
+                            </h4>
+                        </div>
+                        <div class="activity-list" id="recent-activity">
+                            <div class="activity-item loading-item">
+                                <span class="loading-spinner">⏳</span> กำลังโหลดข้อมูล...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Doughnut Chart -->
+                <div class="right-column">
+                    <div class="mini-chart-container full-height-chart">
+                        <div class="mini-chart-header">
+                            <h4 class="mini-chart-title">
+                                <span class="chart-icon">🏆</span> อุปกรณ์ยอดนิยม
+                            </h4>
+                        </div>
+                        <div class="mini-chart-content">
+                            <canvas id="topToolsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+                    <div class="stat-content">
+                        <div class="stat-icon">🏗️</div>
+                        <div class="stat-number" id="total-sites">-</div>
+                        <div class="stat-label">หน้างานทั้งหมด</div>
+                        <div class="stat-progress">
+                            <div class="progress-bar" style="width: 85%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="dashboard-card premium-stat-card">
+                    <div class="stat-content">
+                        <div class="stat-icon">🕐</div>
+                        <div class="stat-number" id="recent-borrows">-</div>
+                        <div class="stat-label">การยืมล่าสุด</div>
+                        <div class="stat-progress">
+                            <div class="progress-bar" style="width: 65%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="dashboard-card premium-stat-card">
+                    <div class="stat-content">
+                        <div class="stat-icon">📈</div>
+                        <div class="stat-number" id="active-percentage">-</div>
+                        <div class="stat-label">อัตราการใช้งาน</div>
+                        <div class="stat-progress">
+                            <div class="progress-bar" style="width: 90%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Enhanced Charts Grid -->
+            <div class="charts-grid">
+                <div class="chart-container premium-chart-container">
+                    <div class="chart-header">
+                        <h3 class="chart-title">
+                            <span class="chart-icon">📊</span> 
+                            การยืมรายวัน
+                        </h3>
+                        <div class="chart-subtitle">7 วันย้อนหลัง</div>
+                    </div>
+                    <div class="chart-content">
+                        <canvas id="dailyChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-container premium-chart-container">
+                    <div class="chart-header">
+                        <h3 class="chart-title">
+                            <span class="chart-icon">🏆</span> 
+                            อุปกรณ์ยอดนิยม
+                        </h3>
+                        <div class="chart-subtitle">TOP 5 อุปกรณ์</div>
+                    </div>
+                    <div class="chart-content">
+                        <canvas id="topToolsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Premium Recent Activity -->
+            <div class="activity-section">
+                <div class="dashboard-card premium-activity-card">
+                    <div class="activity-header">
+                        <h3 class="activity-title">
+                            <span class="activity-icon">📋</span> 
+                            กิจกรรมล่าสุด
+                        </h3>
+                        <button class="refresh-btn" onclick="refreshDashboard()">
+                            <span class="refresh-icon">�</span>
+                            รีเฟรช
+                        </button>
+                    </div>
+                    <div class="activity-content">
+                        <div id="recent-activity" class="activity-table-wrapper">
+                            <table class="premium-table">
                                 <thead>
                                     <tr>
-                                        <th>เวลา</th>
-                                        <th>อุปกรณ์</th>
-                                        <th>หน้างาน</th>
-                                        <th>จำนวน</th>
-                                        <th>หมายเหตุ</th>
+                                        <th><span class="table-icon">⏰</span> เวลา</th>
+                                        <th><span class="table-icon">🛠️</span> อุปกรณ์</th>
+                                        <th><span class="table-icon">🏗️</span> หน้างาน</th>
+                                        <th><span class="table-icon">🔢</span> จำนวน</th>
+                                        <th><span class="table-icon">📝</span> หมายเหตุ</th>
                                     </tr>
                                 </thead>
                                 <tbody id="activity-tbody">
-                                    <tr>
-                                        <td colspan="5" class="text-center">กำลังโหลดข้อมูล...</td>
+                                    <tr class="loading-row">
+                                        <td colspan="5">
+                                            <div class="loading-content">
+                                                <span class="loading-spinner">⏳</span>
+                                                <span>กำลังโหลดข้อมูล...</span>
+                                            </div>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -134,15 +868,12 @@
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
-    <!-- ✅ เพิ่มปุ่มรีเฟรชและข้อมูลเวลา -->
-    <div class="row mb-3">
-        <div class="col-12 text-end">
-            <button id="refresh-btn" class="btn btn-outline-primary btn-sm" onclick="refreshDashboard()">
-                <i class="fas fa-sync-alt"></i> รีเฟรช
-            </button>
-            <small class="text-muted ms-2">อัปเดตล่าสุด: <span id="last-update">-</span></small>
+    <!-- Update Info -->
+    <div class="update-info">
+        <div class="update-text">
+            อัปเดตล่าสุด: <span id="last-update">-</span>
         </div>
     </div>
 
@@ -250,19 +981,24 @@
                     });
                 }
 
-                // แสดงกิจกรรมล่าสุด
-                const tbody = document.getElementById('activity-tbody');
+                // แสดงกิจกรรมล่าสุด (compact version)
+                const activityContainer = document.getElementById('recent-activity');
                 if (stats.recentBorrows.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">ยังไม่มีข้อมูลการยืม</td></tr>';
+                    activityContainer.innerHTML = `
+                        <div class="empty-item">
+                            <span>📭</span> ยังไม่มีข้อมูลการยืม
+                        </div>`;
                 } else {
-                    tbody.innerHTML = stats.recentBorrows.map(tool => `
-                        <tr>
-                            <td>${new Date(tool.borrowedAt).toLocaleString('th-TH')}</td>
-                            <td><i class="fas fa-wrench text-primary"></i> ${tool.name}</td>
-                            <td><i class="fas fa-building text-success"></i> ${tool.site}</td>
-                            <td><span class="badge bg-info">${tool.quantity}</span></td>
-                            <td>${tool.note || '-'}</td>
-                        </tr>
+                    activityContainer.innerHTML = stats.recentBorrows.slice(0, 5).map((tool, index) => `
+                        <div class="activity-item" style="animation-delay: ${index * 0.1}s">
+                            <div class="activity-time">${new Date(tool.borrowedAt).toLocaleString('th-TH')}</div>
+                            <div class="activity-details">
+                                <div class="activity-tool">🛠️ ${tool.name}</div>
+                                <div class="activity-site">🏗️ ${tool.site}</div>
+                                <div class="activity-quantity">${tool.quantity}</div>
+                            </div>
+                            ${tool.note ? `<div class="activity-note">📝 ${tool.note}</div>` : ''}
+                        </div>
                     `).join('');
                 }
 
@@ -273,17 +1009,32 @@
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
 
-                // แสดง error message
-                document.getElementById('activity-tbody').innerHTML =
-                    '<tr><td colspan="5" class="text-center text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>';
+                // แสดง error message ใน activity container
+                const activityContainer = document.getElementById('recent-activity');
+                activityContainer.innerHTML = `
+                    <div class="error-item">
+                        <span>⚠️</span> เกิดข้อผิดพลาดในการโหลดข้อมูล
+                    </div>`;
+
+                // Update time แม้มี error
+                document.getElementById('last-update').textContent = 
+                    new Date().toLocaleString('th-TH');
             }
         }
 
         // เพิ่มปุ่มรีเฟรช
         function refreshDashboard() {
-            document.getElementById('refresh-btn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังโหลด...';
+            const refreshBtn = document.querySelector('.refresh-btn-compact');
+            const refreshIcon = refreshBtn.querySelector('.refresh-icon');
+            
+            refreshBtn.disabled = true;
+            refreshIcon.classList.add('spinning');
+            refreshBtn.innerHTML = '<span class="refresh-icon spinning">🔄</span> กำลังโหลด...';
+            
             loadDashboardData().finally(() => {
-                document.getElementById('refresh-btn').innerHTML = '<i class="fas fa-sync-alt"></i> รีเฟรช';
+                refreshBtn.disabled = false;
+                refreshIcon.classList.remove('spinning');
+                refreshBtn.innerHTML = '<span class="refresh-icon">🔄</span> รีเฟรช';
             });
         }
 

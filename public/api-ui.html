@@ -3,183 +3,223 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> รายการอุปกรณ์ที่ถูกยืม</title>
+    <title>📊 รายการอุปกรณ์ที่ถูกยืม</title>
     <link rel="icon" type="image/x-icon" href="icons/api-ui.png">
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 10px;
-            background-color: #f4f4f4;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: auto;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        h1 {
-            text-align: center;
-            color: #333;
-        }
-
-        /* ✅ Category Filter */
+        /* Override some styles to match main theme */
         .filter-section {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            gap: 15px;
+            margin-bottom: 25px;
             align-items: center;
             flex-wrap: wrap;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
         }
 
         .filter-section select {
-            padding: 8px 12px;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-            background: white;
-            min-width: 150px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            background: rgba(255, 255, 255, 0.9);
+            min-width: 180px;
+            font-weight: 500;
+            color: #2d3748;
+        }
+
+        .filter-section select:focus {
+            outline: none;
+            border-color: #FFD700;
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
         }
 
         .filter-section label {
             font-weight: 600;
-            color: #333;
+            color: #FFD700;
+            margin-bottom: 0;
         }
 
-        button {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            font-size: 16px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: #218838;
+        h1 {
+            text-align: center;
+            color: #FFD700;
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
 
         .site-section {
-            margin-bottom: 20px;
+            margin-bottom: 30px;
         }
 
         .site-section h2 {
-            background: linear-gradient(150deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 8px;
-            border-radius: 5px;
-            font-size: 18px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #E2E8F0;
+            padding: 15px 20px;
+            border-radius: 12px;
+            font-size: 1.3rem;
             text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .site-section h2 .badge {
+            background: rgba(255, 215, 0, 0.15);
+            color: #FFD700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 1px solid rgba(255, 215, 0, 0.3);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
         }
 
         th, td {
-            padding: 10px;
+            padding: 15px;
             text-align: left;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.1);
         }
 
         th {
-            background: #f8f9fa;
+            background: rgba(255, 255, 255, 0.05);
+            color: #FFD700;
+            font-weight: 600;
+        }
+
+        td {
+            color: #2d3748;
         }
 
         .table-container {
             overflow-x: auto;
+            border-radius: 12px;
         }
 
-        /* ✅ Category Stats */
+        /* Category Stats */
         .category-stats {
             display: flex;
             gap: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             flex-wrap: wrap;
         }
 
         .stat-card {
             flex: 1;
-            min-width: 150px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
+            min-width: 160px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #E2E8F0;
+            padding: 20px;
+            border-radius: 12px;
             text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
 
         .stat-number {
-            font-size: 1.8rem;
+            font-size: 2rem;
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+            color: #FFD700;
         }
 
         .stat-label {
             font-size: 0.9rem;
-            opacity: 0.9;
+            opacity: 0.8;
+            color: #E2E8F0;
         }
 
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
+            .filter-section {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+                padding: 15px;
+            }
+
+            .filter-section select {
+                min-width: auto;
+                width: 100%;
+            }
+
+            .category-stats {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                gap: 10px;
+            }
+
             table {
                 font-size: 14px;
             }
 
             th, td {
-                padding: 8px;
-            }
-
-            button {
-                font-size: 14px;
-                padding: 8px;
-            }
-
-            .filter-section {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .filter-section select {
-                min-width: auto;
+                padding: 10px 8px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>📋 รายการอุปกรณ์ที่ถูกยืม</h1>
-        
-        <!-- ✅ Filter Section -->
-        <div class="filter-section">
-            <label for="category-filter">📂 เลือกหน้างาน:</label>
-            <select id="category-filter">
-                <option value="all">ทั้งหมด</option>
-            </select>
-            <button id="refresh-btn" style="width: auto; margin: 0; padding: 8px 16px;">🔄 รีเฟรช</button>
-        </div>
+    <header>
+        <h1>� รายการอุปกรณ์ที่ถูกยืม</h1>
+    </header>
 
-        <!-- ✅ Category Stats -->
-        <div class="category-stats" id="category-stats">
-            <!-- จะถูกสร้างด้วย JavaScript -->
+    <main>
+        <div class="container">
+            <!-- Navigation Links -->
+            <nav class="nav-links">
+                <a href="/" class="nav-link">🏠 หน้าหลัก</a>
+                <a href="/dashboard.html" class="nav-link">📊 แดชบอร์ด</a>
+                <a href="/history.html" class="nav-link">📜 ประวัติ</a>
+                <a href="/admin.html" class="nav-link">⚙️ จัดการ</a>
+            </nav>
+            
+            <!-- Filter Section -->
+            <div class="filter-section">
+                <label for="category-filter">📂 เลือกหน้างาน:</label>
+                <select id="category-filter">
+                    <option value="all">ทั้งหมด</option>
+                </select>
+                <button id="refresh-btn" style="
+                    width: auto; 
+                    margin: 0; 
+                    padding: 12px 16px; 
+                    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+                    color: #0A192F;
+                    border: none;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(255, 215, 0, 0.4)'"
+                   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">🔄 รีเฟรช</button>
+            </div>
+
+            <!-- Category Stats -->
+            <div class="category-stats" id="category-stats">
+                <!-- จะถูกสร้างด้วย JavaScript -->
+            </div>
+            
+            <div id="borrowed-tools"></div>
         </div>
-        
-        <div id="borrowed-tools"></div>
-        
-        <!-- ✅ เพิ่มลิงก์กลับ -->
-        <div style="margin-top: 20px; text-align: center;">
-            <a href="/history-page" style="display: inline-block; padding: 10px 20px; background: #e2c05a; color: black; text-decoration: none; border-radius: 5px; margin-left: 10px;">📜 ประวัติ</a>
-        </div>
-    </div>
+    </main>
 
     <script>
         document.addEventListener("DOMContentLoaded", async function () {
@@ -309,11 +349,32 @@
 
             // ✅ Event Listeners
             categoryFilter.addEventListener("change", fetchBorrowedTools);
-            refreshBtn.addEventListener("click", async () => {
-                await loadCategories();
-                await loadCategoryStats();
-                await fetchBorrowedTools();
-            });
+            
+            if (refreshBtn) {
+                refreshBtn.addEventListener("click", async () => {
+                    try {
+                        refreshBtn.disabled = true;
+                        refreshBtn.innerHTML = "🔄 กำลังโหลด...";
+                        
+                        await loadCategories();
+                        await loadCategoryStats();
+                        await fetchBorrowedTools();
+                        
+                        refreshBtn.innerHTML = "✅ เสร็จแล้ว!";
+                        setTimeout(() => {
+                            refreshBtn.innerHTML = "🔄 รีเฟรช";
+                            refreshBtn.disabled = false;
+                        }, 1000);
+                    } catch (error) {
+                        console.error("❌ Error refreshing:", error);
+                        refreshBtn.innerHTML = "❌ เกิดข้อผิดพลาด";
+                        setTimeout(() => {
+                            refreshBtn.innerHTML = "🔄 รีเฟรช";
+                            refreshBtn.disabled = false;
+                        }, 2000);
+                    }
+                });
+            }
 
             // ✅ เริ่มต้น
             await loadCategories();

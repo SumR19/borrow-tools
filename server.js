@@ -4,6 +4,55 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const path = require("path");
 const cron = require('node-cron'); // ✅ เพิ่มบรรทัดนี้
+const { Server } = require('socket.io');
+const http = require('http');
+
+// ✅ Override console methods first
+const originalLog = console.log;
+const originalError = console.error;
+const originalWarn = console.warn;
+
+// ✅ Custom Log Functions with Timestamp
+function logWithTime(message, ...args) {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('th-TH', { 
+        timeZone: 'Asia/Bangkok',
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    originalLog(`[${timeStr}] ${message}`, ...args);
+}
+
+function errorWithTime(message, ...args) {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('th-TH', { 
+        timeZone: 'Asia/Bangkok',
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    originalError(`[${timeStr}] ${message}`, ...args);
+}
+
+function warnWithTime(message, ...args) {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('th-TH', { 
+        timeZone: 'Asia/Bangkok',
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    originalWarn(`[${timeStr}] ${message}`, ...args);
+}
+
+// ✅ Apply override
+console.log = logWithTime;
+console.error = errorWithTime;
+console.warn = warnWithTime;
 
 const app = express();
 
@@ -25,7 +74,6 @@ app.use(express.json());
 
 // ✅ MongoDB Connection
 mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
     serverSelectionTimeoutMS: 10000,
     socketTimeoutMS: 45000,
     autoIndex: true,
@@ -93,19 +141,28 @@ async function autoCleanupOldRecords() {
     }
 }
 
-// ✅ ตั้งค่า Cron Job - ลบข้อมูลเก่าทุกวันเที่ยงคืน
-cron.schedule('0 0 * * *', autoCleanupOldRecords, {
-    timezone: "Asia/Bangkok"
+
+// เพิ่มใน server.js หลัง cron job
+
+// ✅ จัดการ unhandled promise rejection
+process.on('unhandledRejection', (reason, promise) => {
+    console.log('❌ Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-// ✅ ตั้งค่า Cron Job - ลบข้อมูลเก่าทุกสัปดาห์ (ทางเลือก)
-// cron.schedule('0 0 * * 0', autoCleanupOldRecords, {
-//     timezone: "Asia/Bangkok"
-// });
+// ✅ จัดการ uncaught exception
+process.on('uncaughtException', (error) => {
+    console.log('❌ Uncaught Exception:', error);
+});
 
-// ✅ เรียกใช้ครั้งแรกเมื่อ server เริ่มต้น
-console.log("🔄 เริ่มการตรวจสอบข้อมูลเก่าครั้งแรก...");
-setTimeout(autoCleanupOldRecords, 5000); // รอ 5 วินาที
+// ✅ API: ดึงหมวดหมู่หน้างานทั้งหมด (อัตโนมัติ)
+process.on('unhandledRejection', (reason, promise) => {
+    console.log('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// ✅ จัดการ uncaught exception
+process.on('uncaughtException', (error) => {
+    console.log('❌ Uncaught Exception:', error);
+});
 
 // ✅ API: ดึงหมวดหมู่หน้างานทั้งหมด (อัตโนมัติ)
 app.get("/categories", async (req, res) => {
@@ -560,6 +617,320 @@ app.get("/api/return-stats", async (req, res) => {
 // ✅ Static Files
 app.use(express.static(path.join(__dirname, "public")));
 
+// ✅ เพิ่มหลังบรรทัด app.use(express.static(path.join(__dirname, "public")));
+
+// Admin Authentication - เพิ่มการ debug
+const ADMIN_PIN = process.env.ADMIN_PIN || "1234"; // ✅ ใช้ค่า default สำหรับการทดสอบ
+console.log("🔐 Admin PIN ที่ตั้งไว้:", ADMIN_PIN); // ✅ เพิ่มบรรทัดนี้เพื่อ debug
+
+// Admin Auth Middleware
+function requireAdminAuth(req, res, next) {
+    const pin = req.headers['x-admin-pin'] || req.query.pin;
+    console.log("📝 PIN ที่ได้รับ:", pin); // ✅ เพิ่มบรรทัดนี้เพื่อ debug
+    console.log("🔍 PIN ที่ตั้งไว้:", ADMIN_PIN); // ✅ เพิ่มบรรทัดนี้เพื่อ debug
+    
+    if (pin !== ADMIN_PIN) {
+        console.log("❌ PIN ไม่ตรงกัน"); // ✅ เพิ่มบรรทัดนี้เพื่อ debug
+        return res.status(401).json({ error: "ไม่ได้รับอนุญาต" });
+    }
+    console.log("✅ PIN ถูกต้อง"); // ✅ เพิ่มบรรทัดนี้เพื่อ debug
+    next();
+}
+
+// ✅ เพิ่ม Missing API Routes
+
+app.get('/api/tools/catalog', async (req, res) => {
+    try {
+        const tools = await ToolCatalog.find({}).sort({ name: 1 });
+        res.json({ success: true, data: tools });
+    } catch (error) {
+        console.error('Error fetching catalog:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// API: ตรวจสอบ PIN
+app.post("/api/admin/auth", (req, res) => {
+    const { pin } = req.body;
+    console.log("🔐 ตรวจสอบ PIN:", pin, "vs", ADMIN_PIN); // ✅ เพิ่มบรรทัดนี้เพื่อ debug
+    
+    if (pin === ADMIN_PIN) {
+        console.log("✅ PIN ถูกต้อง - อนุญาตเข้าใช้งาน"); // ✅ เพิ่มบรรทัดนี้เพื่อ debug
+        res.json({ success: true });
+    } else {
+        console.log("❌ PIN ผิด"); // ✅ เพิ่มบรรทัดนี้เพื่อ debug
+        res.status(401).json({ error: "PIN ไม่ถูกต้อง" });
+    }
+});
+
+// ✅ Debug Route - ดู routes ทั้งหมด
+app.get('/api/debug/routes', (req, res) => {
+    const routes = [];
+    app._router.stack.forEach(function(r){
+        if (r.route && r.route.path){
+            routes.push({
+                method: Object.keys(r.route.methods)[0].toUpperCase(),
+                path: r.route.path
+            });
+        }
+    });
+    res.json({ routes: routes });
+});
+// API: ตรวจสอบ PIN
+app.post("/api/admin/auth", (req, res) => {
+    const { pin } = req.body;
+    console.log("🔐 ตรวจสอบ PIN:", pin, "vs", ADMIN_PIN); // ✅ เพิ่มบรรทัดนี้เพื่อ debug
+    
+    if (pin === ADMIN_PIN) {
+        console.log("✅ PIN ถูกต้อง - อนุญาตเข้าใช้งาน"); // ✅ เพิ่มบรรทัดนี้เพื่อ debug
+        res.json({ success: true });
+    } else {
+        console.log("❌ PIN ผิด"); // ✅ เพิ่มบรรทัดนี้เพื่อ debug
+        res.status(401).json({ error: "PIN ไม่ถูกต้อง" });
+    }
+});
+
+// API: ดึงข้อมูลทั้งหมดสำหรับ Admin
+app.get("/api/admin/tools", requireAdminAuth, async (req, res) => {
+    try {
+        const borrowedTools = await Tool.find({ status: "borrowed" }).sort({ borrowedAt: -1 });
+        res.json(borrowedTools);
+    } catch (error) {
+        res.status(500).json({ error: "ไม่สามารถดึงข้อมูลได้" });
+    }
+});
+// ...existing code...
+
+// ✅ เพิ่ม API endpoint ที่หายไป
+app.get("/api/admin/tools/catalog", requireAdminAuth, async (req, res) => {
+    try {
+        console.log('🔄 Admin: กำลังดึงรายการอุปกรณ์ catalog...');
+        
+        const tools = await ToolCatalog.find().sort({ createdAt: -1 });
+        
+        // นับจำนวนที่ยืมอยู่แต่ละอุปกรณ์
+        const toolsWithStats = await Promise.all(
+            tools.map(async (tool) => {
+                const borrowedCount = await Tool.countDocuments({
+                    name: tool.name,
+                    status: "borrowed"
+                });
+                
+                return {
+                    ...tool.toObject(),
+                    currentBorrowedCount: borrowedCount,
+                    canDelete: borrowedCount === 0
+                };
+            })
+        );
+        
+        const totalTools = tools.length;
+        const totalBorrowed = await Tool.countDocuments({ status: "borrowed" });
+        
+        console.log(`✅ ส่งข้อมูล catalog: ${tools.length} รายการ`);
+        
+        res.json({
+            success: true,
+            data: toolsWithStats,
+            stats: {
+                totalTools,
+                totalBorrowed,
+                activeTools: tools.filter(t => t.isActive).length
+            }
+        });
+        
+    } catch (error) {
+        console.error("❌ Error fetching admin tool catalog:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ✅ เพิ่ม API endpoints อื่นๆ ที่หายไป
+app.post("/api/admin/tools/catalog", requireAdminAuth, async (req, res) => {
+    try {
+        const { name } = req.body;
+        
+        if (!name || name.trim().length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                error: "กรุณาระบุชื่ออุปกรณ์" 
+            });
+        }
+        
+        const newTool = new ToolCatalog({
+            name: name.trim(),
+            isNewTool: true,
+            usageCount: 0,
+            isActive: true
+        });
+        
+        await newTool.save();
+        
+        console.log(`✨ เพิ่มอุปกรณ์ใหม่: ${name}`);
+        
+        res.json({
+            success: true,
+            data: newTool,
+            message: "เพิ่มอุปกรณ์ใหม่สำเร็จ"
+        });
+        
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(400).json({ 
+                success: false, 
+                error: "อุปกรณ์นี้มีอยู่แล้ว" 
+            });
+        }
+        
+        console.error("❌ Error adding tool:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.put("/api/admin/tools/catalog/:id", requireAdminAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name } = req.body;
+        
+        if (!name || name.trim().length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                error: "กรุณาระบุชื่ออุปกรณ์" 
+            });
+        }
+        
+        const updatedTool = await ToolCatalog.findByIdAndUpdate(
+            id,
+            { name: name.trim() },
+            { new: true }
+        );
+        
+        if (!updatedTool) {
+            return res.status(404).json({ 
+                success: false, 
+                error: "ไม่พบอุปกรณ์ที่ต้องการแก้ไข" 
+            });
+        }
+        
+        console.log(`✏️ แก้ไขอุปกรณ์: ${updatedTool.name}`);
+        
+        res.json({
+            success: true,
+            data: updatedTool,
+            message: "แก้ไขอุปกรณ์สำเร็จ"
+        });
+        
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(400).json({ 
+                success: false, 
+                error: "ชื่ออุปกรณ์นี้มีอยู่แล้ว" 
+            });
+        }
+        
+        console.error("❌ Error updating tool:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.delete("/api/admin/tools/catalog/:id", requireAdminAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const toolToDelete = await ToolCatalog.findById(id);
+        if (!toolToDelete) {
+            return res.status(404).json({ success: false, error: 'ไม่พบอุปกรณ์ที่ต้องการลบ' });
+        }
+        
+        // ตรวจสอบว่ายังมีคนยืมอุปกรณ์นี้อยู่หรือไม่
+        const borrowedCount = await Tool.countDocuments({
+            name: toolToDelete.name,
+            status: "borrowed"
+        });
+        
+        if (borrowedCount > 0) {
+            return res.status(400).json({ 
+                success: false, 
+                error: `ไม่สามารถลบได้ มี ${borrowedCount} รายการที่ยืมอยู่`,
+                borrowedCount
+            });
+        }
+        
+        await ToolCatalog.findByIdAndDelete(id);
+        
+        console.log(`🗑️ ลบอุปกรณ์: ${toolToDelete.name}`);
+        
+        res.json({
+            success: true,
+            message: "ลบอุปกรณ์สำเร็จ"
+        });
+    } catch (error) {
+        console.error("❌ Error deleting tool:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ...existing code...
+// API: แก้ไขข้อมูลการยืม
+app.put("/api/admin/tools/:id", requireAdminAuth, async (req, res) => {
+    try {
+        const { quantity, site, note } = req.body;
+        const updatedTool = await Tool.findByIdAndUpdate(
+            req.params.id,
+            { quantity, site, note },
+            { new: true }
+        );
+        if (!updatedTool) {
+            return res.status(404).json({ error: "ไม่พบข้อมูล" });
+        }
+        res.json(updatedTool);
+    } catch (error) {
+        res.status(500).json({ error: "ไม่สามารถแก้ไขได้" });
+    }
+});
+
+// API: ลบรายการการยืม
+app.delete("/api/admin/tools/:id", requireAdminAuth, async (req, res) => {
+    try {
+        const deletedTool = await Tool.findByIdAndDelete(req.params.id);
+        if (!deletedTool) {
+            return res.status(404).json({ error: "ไม่พบข้อมูล" });
+        }
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: "ไม่สามารถลบได้" });
+    }
+});
+
+// API: เพิ่มรายการการยืมแบบ Manual
+app.post("/api/admin/tools", requireAdminAuth, async (req, res) => {
+    try {
+        const { name, quantity, site, note, borrowedAt } = req.body;
+        const newTool = new Tool({
+            name,
+            quantity: parseInt(quantity),
+            site,
+            note: note || "",
+            status: "borrowed",
+            borrowedAt: borrowedAt ? new Date(borrowedAt) : new Date()
+        });
+        await newTool.save();
+        res.status(201).json(newTool);
+    } catch (error) {
+        res.status(500).json({ error: "ไม่สามารถเพิ่มได้" });
+    }
+});
+
+// API: จัดการรายชื่อหน้างาน
+app.get("/api/admin/sites", requireAdminAuth, async (req, res) => {
+    try {
+        const sites = await Tool.distinct("site");
+        res.json(sites);
+    } catch (error) {
+        res.status(500).json({ error: "ไม่สามารถดึงข้อมูลหน้างานได้" });
+    }
+});
+
 // ✅ Routes
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "index.html"));
@@ -577,9 +948,400 @@ app.get("/history-page", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "history.html"));
 });
 
+// ✅ สร้าง HTTP Server สำหรับ WebSocket
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
+
+// ✅ เพิ่ม Schema สำหรับรายการอุปกรณ์
+const toolCatalogSchema = new mongoose.Schema({
+    name: { type: String, required: true, unique: true },
+    isNewTool: { type: Boolean, default: true }, // เปลี่ยนจาก isNew เป็น isNewTool
+    usageCount: { type: Number, default: 0 },
+    createdAt: { type: Date, default: Date.now },
+    isActive: { type: Boolean, default: true }
+}, {
+    suppressReservedKeysWarning: true // ป้องกัน warning
+});
+
+const ToolCatalog = mongoose.model("ToolCatalog", toolCatalogSchema);
+
+// ✅ Migration ข้อมูลเดิมจาก script.js (รันครั้งเดียว) - อัปเดตให้ครบถ้วน
+const defaultTools = [
+    // 🔧 เครื่องมือเจาะ/สว่าน
+    "สว่าน (แบต)",
+    "สว่าน (ไฟฟ้า)",
+    "สว่านโรตารี,สว่านแช็ก (ไฟฟ้า)",
+    "สว่านโรตารี่,สว่านแย็ก(แบต)",
+    "สว่านโรตารี่แบตเล็ก",
+    "เครื่องสกัด,เจาะ คอนกรีต (ไฟฟ้า)",
+    "เครื่องเจาะคิน, ขุดหลุม (น้ำมัน)",
+    "ชุดสว่าน และ หินเจียร (แบต)",
+
+    // 🔨 เครื่องมือตัด/เจียร/ขัด
+    "หินเจียรขนาดเล็ก (ไฟฟ้า)",
+    "หินเจียรขนาดเล็ก (แบต)",
+    "หินเจียรขนาดกลาง (ไฟฟ้า)",
+    "หินเจียรขนาดกลาง (แบต)",
+    "หินเจียรขนาดใหญ่ (ไฟฟ้า)",
+    "ไฟเบอร์ขนาดเล็ก (ไฟฟ้า)",
+    "ไฟเบอร์ขนาดใหญ่ (ไฟฟ้า)",
+    "เครื่องขัดกระดาษทรายขนาดเล็ก (ไฟฟ้า)",
+    "เครื่องขัดกระดาษทรายขนาดใหญ่ (ไฟฟ้า)",
+    "รถถังขัดผนัง (ไฟฟ้า)",
+    "เครื่องขัดผนัง (ไฟฟ้า)",
+    "เกรียงขัดมันขนาดเล็ก",
+    "เกรียงขัดมันขนาดใหญ่",
+    "รถถังขัดสกิม",
+
+    // 🪚 เครื่องมือตัดไม้
+    "เครื่องตัดไม้ (ไฟฟ้า)",
+    "จิ๊กซอตัดไม้ (ไฟฟ้า)",
+    "จิ๊กซอตัดไม้ (แบต)",
+    "วงเดือน (ไฟฟ้า)",
+    "วงเดือน (แบต)",
+
+    // ✂️ เครื่องมือตัดโลหะ/วัสดุ
+    "กรรไกรตัดซีลาย (C-Line)",
+    "กรรไกรตัดท่อ Pvc",
+    "กรรไกรตัดแผ่นเมทัลชีท",
+    "กรรไกรตัดเหล็ก",
+    "ตัวตัดกระเบื้อง",
+    "ตัวจับกระเบื้อง",
+    "กิ๊ฟหนีบกระเบื้อง (ถุงละ 100 ตัว)",
+
+    // 🏗️ เครื่องมือก่อสร้าง/ปูน
+    "เครื่องวายจี้ปูน (ไฟฟ้า)",
+    "เครื่องโม่ปูนฉาบ (ไฟฟ้า)",
+    "หัวปั่นปูน",
+    "กะบะปูน",
+    "ถังใส่ปูน",
+    "เครื่องตบดิน (น้ำมัน)",
+
+    // ⚡ อุปกรณ์เชื่อม/ไฟฟ้า
+    "ตู้เชื่อม (ไฟฟ้า)",
+    "ตู้เชื่อม Mig (ไฟฟ้า)",
+    "สายไฟ (ไฟฟ้า)",
+    "สายเชื่อม (ไฟฟ้า)",
+
+    // 🌬️ เครื่องมือลม/ดูด/เป่า
+    "เครื่องดูดฝุ่น (ไฟฟ้า)",
+    "เครื่องเป่าลมร้อนต่อท่อ Pvc (ไฟฟ้า)",
+    "เครื่องเป่าลม (ไร้สาย,แบต)",
+    "ปั๊มลม",
+    "แม็กลม",
+    "ถังลม",
+    "ปืนลม",
+    "ปั้มน้ำไดโว่ (ไฟฟ้า)",
+
+    // 📏 เครื่องมือวัด/สำรวจ
+    "ระดับน้ำ",
+    "สายวัดระดับน้ำ",
+    "กล้องวัดระดับ",
+    "สามเหลี่ยม",
+    "เครื่องยิงเลเซอร์ (แบต)",
+    "เทปวัด",
+
+    // 💡 อุปกรณ์แสงสว่าง/พ่น
+    "สปอร์ตไลท์",
+    "เครื่องพ่นสี",
+
+    // 🔗 เครื่องมือยึด/ติด
+    "ปืนยิ่งกาว",
+    "ปืนยิงกาวไส้กรอก",
+    "แด๊ปขาว,กาวตะปูแด๊ปสีอื่นๆ",
+
+    // 🔨 เครื่องมือพื้นฐาน
+    "ค้อนเล็ก",
+    "ชะแลง",
+    "ทริมเมอร์ (แบต)",
+    "ค้อนปอนด์",
+    "ค้อนยาง",
+    "ชุดรวมเครื่องมือช่าง (กระเป๋าชุดใหญ่)",
+
+    // 🌱 เครื่องมือสวน/ไร่
+    "เครื่องตัดหญ้า (น้ำมัน)",
+    "เลื่อยไฟฟ้าตัดไม้ (แบต)",
+
+    // 🪜 อุปกรณ์อื่น ๆ
+    "บันได",
+    "จอบ",
+    "เสียม",
+    "บุ้งกี๋"
+];
+
+async function migrateDefaultTools() {
+    try {
+        const existingCount = await ToolCatalog.countDocuments();
+        if (existingCount === 0) {
+            console.log("🔄 Migration: เริ่มโอนย้ายรายการอุปกรณ์เดิม...");
+            
+            const toolsToMigrate = defaultTools.map(name => ({
+                name,
+                isNewTool: false, // อุปกรณ์เดิมไม่ต้องแสดง "ใหม่"
+                usageCount: 0,
+                isActive: true
+            }));
+            
+            await ToolCatalog.insertMany(toolsToMigrate);
+            console.log(`✅ Migration สำเร็จ: โอนย้าย ${defaultTools.length} รายการ`);
+        } else {
+            console.log(`ℹ️ พบข้อมูลอุปกรณ์ ${existingCount} รายการ - ข้าม Migration`);
+        }
+    } catch (error) {
+        console.error("❌ Migration Error:", error);
+    }
+}
+
+// ✅ รัน Migration หลัง MongoDB Connect
+mongoose.connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    serverSelectionTimeoutMS: 10000,
+    socketTimeoutMS: 45000,
+    autoIndex: true,
+})
+.then(async () => {
+    console.log("✅ MongoDB Connected");
+    await migrateDefaultTools(); // รัน Migration
+})
+.catch(err => console.error("❌ MongoDB Connection Error:", err));
+
+// ✅ WebSocket Connection
+io.on('connection', (socket) => {
+    console.log('👤 Client เชื่อมต่อ WebSocket:', socket.id);
+    
+    socket.on('disconnect', () => {
+        console.log('👋 Client ตัดการเชื่อมต่อ:', socket.id);
+    });
+});
+
+// ✅ API: ดึงรายการอุปกรณ์ทั้งหมด (สำหรับหน้าหลัก)
+app.get("/api/tools/catalog", async (req, res) => {
+    try {
+        const tools = await ToolCatalog.find({ isActive: true })
+            .sort({ 
+                isNewTool: -1,    // ใหม่ขึ้นก่อน
+                usageCount: -1,   // ยืมบ่อยขึ้นก่อน  
+            });
+        
+        res.json({
+            success: true,
+            data: tools,
+            total: tools.length
+        });
+    } catch (error) {
+        console.error("❌ Error fetching tool catalog:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ✅ API: ดึงรายการอุปกรณ์สำหรับ Admin (พร้อมสถิติ)
+app.get("/api/admin/tools/catalog", requireAdminAuth, async (req, res) => {
+    try {
+        const tools = await ToolCatalog.find().sort({ createdAt: -1 });
+        
+        // นับจำนวนที่ยืมอยู่แต่ละอุปกรณ์
+        const toolsWithStats = await Promise.all(
+            tools.map(async (tool) => {
+                const borrowedCount = await Tool.countDocuments({
+                    name: tool.name,
+                    status: "borrowed"
+                });
+                
+                return {
+                    ...tool.toObject(),
+                    currentBorrowedCount: borrowedCount,
+                    canDelete: borrowedCount === 0
+                };
+            })
+        );
+        
+        const totalTools = tools.length;
+        const totalBorrowed = await Tool.countDocuments({ status: "borrowed" });
+        
+        res.json({
+            success: true,
+            data: toolsWithStats,
+            stats: {
+                totalTools,
+                totalBorrowed,
+                activeTools: tools.filter(t => t.isActive).length
+            }
+        });
+        
+    } catch (error) {
+        console.error("❌ Error fetching admin tool catalog:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ✅ API: เพิ่มอุปกรณ์ใหม่ (Admin)
+app.post("/api/admin/tools/catalog", requireAdminAuth, async (req, res) => {
+    try {
+        const { name } = req.body;
+        
+        if (!name || name.trim().length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                error: "กรุณาระบุชื่ออุปกรณ์" 
+            });
+        }
+        
+        const newTool = new ToolCatalog({
+            name: name.trim(),
+            isNewTool: true,
+            usageCount: 0,
+            isActive: true
+        });
+        
+        await newTool.save();
+        
+        console.log(`✨ เพิ่มอุปกรณ์ใหม่: ${name}`);
+        
+        // ✅ ส่งข้อมูลผ่าน WebSocket ไปยัง clients ทั้งหมด
+        io.emit('toolAdded', {
+            tool: newTool,
+            message: `เพิ่มอุปกรณ์ใหม่: ${name}`
+        });
+        
+        res.json({
+            success: true,
+            data: newTool,
+            message: "เพิ่มอุปกรณ์ใหม่สำเร็จ"
+        });
+        
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(400).json({ 
+                success: false, 
+                error: "อุปกรณ์นี้มีอยู่แล้ว" 
+            });
+        }
+        
+        console.error("❌ Error adding tool:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ✅ API: แก้ไขชื่ออุปกรณ์ (Admin)
+app.put("/api/admin/tools/catalog/:id", requireAdminAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name } = req.body;
+        
+        if (!name || name.trim().length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                error: "กรุณาระบุชื่ออุปกรณ์" 
+            });
+        }
+        
+        const updatedTool = await ToolCatalog.findByIdAndUpdate(
+            id,
+            { name: name.trim() },
+            { new: true }
+        );
+        
+        if (!updatedTool) {
+            return res.status(404).json({ 
+                success: false, 
+                error: "ไม่พบอุปกรณ์ที่ต้องการแก้ไข" 
+            });
+        }
+        
+        console.log(`✏️ แก้ไขอุปกรณ์: ${updatedTool.name}`);
+        
+        // ✅ ส่งข้อมูลผ่าน WebSocket
+        io.emit('toolUpdated', {
+            tool: updatedTool,
+            message: `แก้ไขอุปกรณ์: ${updatedTool.name}`
+        });
+        
+        res.json({
+            success: true,
+            data: updatedTool,
+            message: "แก้ไขอุปกรณ์สำเร็จ"
+        });
+        
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(400).json({ 
+                success: false, 
+                error: "ชื่ออุปกรณ์นี้มีอยู่แล้ว" 
+            });
+        }
+        
+        console.error("❌ Error updating tool:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ✅ API: ลบอุปกรณ์ (Admin) - ตรวจสอบว่ายังมีคนยืมอยู่หรือไม่
+app.delete("/api/admin/tools/catalog/:id", requireAdminAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const toolToDelete = await ToolCatalog.findById(id);
+        if (!toolToDelete) {
+            return res.status(404).json({ success: false, error: 'ไม่พบอุปกรณ์ที่ต้องการลบ' });
+        }
+        
+        // ✅ ตรวจสอบว่ายังมีคนยืมอุปกรณ์นี้อยู่หรือไม่
+        const borrowedCount = await Tool.countDocuments({
+            name: toolToDelete.name,
+            status: "borrowed"
+        });
+        
+        if (borrowedCount > 0) {
+            return res.status(400).json({ 
+                success: false, 
+                error: `ไม่สามารถลบได้ มี ${borrowedCount} รายการที่ยืมอยู่`,
+                borrowedCount
+            });
+        }
+        
+        await ToolCatalog.findByIdAndDelete(id);
+        
+        console.log(`🗑️ ลบอุปกรณ์: ${toolToDelete.name}`);
+        
+        // ✅ ส่งข้อมูลผ่าน WebSocket
+        io.emit('toolDeleted', {
+            toolId: id,
+            toolName: toolToDelete.name,
+            message: `ลบอุปกรณ์: ${toolToDelete.name}`
+        });
+        
+        res.json({
+            success: true,
+            message: "ลบอุปกรณ์สำเร็จ"
+        });
+    } catch (error) {
+        console.error("❌ Error deleting tool:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ✅ 404 Handler สำหรับ debug
+app.use('*', (req, res) => {
+    console.log('❌ 404 Not Found:', req.method, req.originalUrl);
+    res.status(404).json({ 
+        success: false, 
+        error: 'Route not found',
+        method: req.method,
+        path: req.originalUrl,
+        timestamp: new Date().toISOString()
+    });
+});
+
+// ✅ แก้ไข app.listen ให้ใช้ server.listen แทน
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`🔌 WebSocket ready for real-time updates`);
     console.log(`🗑️ Auto Cleanup: เปิดใช้งาน (ลบข้อมูลเก่ากว่า 90 วันทุกวันเที่ยงคืน)`);
     console.log(`📊 Manual Cleanup: GET /api/data-stats, DELETE /api/cleanup`);
 });

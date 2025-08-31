@@ -4,88 +4,95 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>📜 ประวัติการยืม-คืนอุปกรณ์</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body {
-            background: linear-gradient(135deg, #10d493 0%, #1b6813 100%);
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        .main-container {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(10px);
-            margin: 20px auto;
-            max-width: 1200px;
-        }
-        
         .date-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px 25px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #E2E8F0;
+            padding: 20px 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            text-align: center;
         }
         
         .site-header {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            border-left: 4px solid #667eea;
-            padding: 12px 20px;
-            margin-bottom: 15px;
-            border-radius: 0 8px 8px 0;
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-left: 4px solid #FFD700;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border-radius: 0 12px 12px 0;
         }
         
         .site-title {
             font-weight: 600;
-            color: #2d3748;
+            color: #FFD700;
             margin: 0;
+            font-size: 1.2rem;
         }
         
         .site-times {
-            color: #718096;
+            color: #E2E8F0;
             font-size: 0.9rem;
             margin: 0;
         }
         
         .history-table {
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
             overflow: hidden;
             margin-bottom: 30px;
+            width: 100%;
         }
         
         .history-table th {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: rgba(255, 255, 255, 0.05);
+            color: #FFD700;
             font-weight: 600;
             border: none;
-            padding: 12px;
+            padding: 15px;
         }
         
         .history-table td {
-            padding: 12px;
+            padding: 15px;
             vertical-align: middle;
-            border-color: #e2e8f0;
+            border-color: rgba(255, 215, 0, 0.1);
+            color: #2d3748;
+        }
+
+        /* เพิ่ม responsive สำหรับตาราง */
+        @media (max-width: 768px) {
+            .history-table th,
+            .history-table td {
+                padding: 10px 8px;
+                font-size: 0.9rem;
+            }
         }
         
         .status-badge {
-            padding: 4px 12px;
+            padding: 6px 14px;
             border-radius: 20px;
             font-size: 0.85rem;
             font-weight: 600;
         }
         
         .status-returned {
-            background: #d4edda;
-            color: #155724;
+            background: rgba(34, 197, 94, 0.1);
+            color: #16a34a;
+            border: 1px solid rgba(34, 197, 94, 0.2);
         }
         
         .status-borrowed {
-            background: #fff3cd;
+            background: rgba(255, 215, 0, 0.1);
+            color: #ca8a04;
+            border: 1px solid rgba(255, 215, 0, 0.3);
             color: #856404;
         }
         
@@ -102,69 +109,82 @@
         }
         
         .nav-link {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white !important;
-            border-radius: 8px;
-            padding: 10px 20px;
+            background: rgba(255, 215, 0, 0.1) !important;
+            border: 1px solid rgba(255, 215, 0, 0.3) !important;
+            color: #FFD700 !important;
+            border-radius: 10px;
+            padding: 15px 20px;
             text-decoration: none;
             transition: all 0.3s ease;
             display: inline-block;
-            margin: 10px 5px;
+            margin: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .nav-link::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
         }
         
         .nav-link:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-            color: white !important;
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+            color: #0A192F !important;
+        }
+        
+        .nav-link:hover::before {
+            opacity: 1;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="main-container p-4">
-            <!-- Header -->
-            <div class="text-center mb-4">
-                <h1 class="display-6 fw-bold text-primary">
-                    <i class="fas fa-history me-2"></i>
-                    📜 ประวัติการยืม-คืนอุปกรณ์
-                </h1>
-                <p class="text-muted">รายละเอียดการยืม-คืนอุปกรณ์ทั้งหมด</p>
-            </div>
+    <header>
+        <h1>📜 ประวัติการยืม-คืนอุปกรณ์</h1>
+    </header>
 
-            <!-- Navigation -->
-            <div class="text-center mb-4">
-                <a href="/dashboard.html" class="nav-link">
-                    <i class="fas fa-chart-bar me-1"></i> แดชบอร์ด
-                </a>
-                <a href="/api-ui.html" class="nav-link">
-                    <i class="fas fa-cog me-1"></i> จัดการข้อมูล
-                </a>
-            </div>
+    <main>
+        <div class="container">
+            <!-- Navigation Links -->
+            <nav class="nav-links">
+                <a href="/" class="nav-link">🏠 หน้าหลัก</a>
+                <a href="/dashboard" class="nav-link">📊 แดชบอร์ด</a>
+                <a href="/api-ui" class="nav-link">� รายการยืม</a>
+                <a href="/admin" class="nav-link">⚙️ จัดการ</a>
+            </nav>
 
             <!-- Loading -->
-            <div id="loading" class="loading">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mt-3">กำลังโหลดข้อมูล...</p>
+            <div id="loading" style="text-align: center; padding: 50px; color: #E2E8F0;">
+                <div style="font-size: 2rem; margin-bottom: 15px;">⏳</div>
+                <h4 style="color: #FFD700; margin-bottom: 10px;">กำลังโหลดข้อมูลประวัติ...</h4>
+                <p style="opacity: 0.7;">กรุณารอสักครู่</p>
             </div>
 
+            <!-- History Content -->
             <!-- History Content -->
             <div id="history-content" style="display: none;">
                 <!-- จะถูกสร้างด้วย JavaScript -->
             </div>
 
             <!-- No Data -->
-            <div id="no-data" class="no-data" style="display: none;">
-                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                <h4>ไม่มีข้อมูลประวัติ</h4>
-                <p>ยังไม่มีการยืม-คืนอุปกรณ์</p>
-                <a href="/" class="btn btn-primary">
-                    <i class="fas fa-plus me-1"></i> เริ่มยืมอุปกรณ์
+            <div id="no-data" class="no-data" style="display: none; text-align: center; padding: 50px;">
+                <div style="font-size: 3rem; margin-bottom: 15px;">📭</div>
+                <h4 style="color: #FFD700; margin-bottom: 10px;">ไม่มีข้อมูลประวัติ</h4>
+                <p style="color: #E2E8F0;">ยังไม่มีการยืม-คืนอุปกรณ์</p>
+                <a href="/" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #0A192F; text-decoration: none; border-radius: 8px; font-weight: 600; margin-top: 10px;">
+                    🏠 เริ่มยืมอุปกรณ์
                 </a>
             </div>
         </div>
-    </div>
+    </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -343,6 +363,7 @@
 
                 console.log('📊 ข้อมูลประวัติ:', data);
 
+                // ซ่อน loading หลังจากโหลดเสร็จ
                 document.getElementById('loading').style.display = 'none';
 
                 if (!data || data.length === 0) {
@@ -361,12 +382,21 @@
             } catch (error) {   
                 console.error('❌ Error loading history:', error);
                 document.getElementById('loading').innerHTML = `
-                    <div class="text-danger">
-                        <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
-                        <h4>เกิดข้อผิดพลาด</h4>
-                        <p>ไม่สามารถโหลดข้อมูลได้: ${error.message}</p>
-                        <button class="btn btn-primary" onclick="loadHistory()">
-                            <i class="fas fa-redo me-1"></i> ลองใหม่
+                    <div style="text-align: center; padding: 40px; color: #dc3545;">
+                        <div style="font-size: 3rem; margin-bottom: 15px;">⚠️</div>
+                        <h4 style="color: #FFD700; margin-bottom: 10px;">เกิดข้อผิดพลาด</h4>
+                        <p style="color: #E2E8F0;">ไม่สามารถโหลดข้อมูลได้: ${error.message}</p>
+                        <button onclick="loadHistory()" style="
+                            padding: 12px 24px; 
+                            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); 
+                            color: #0A192F; 
+                            border: none; 
+                            border-radius: 8px; 
+                            font-weight: 600; 
+                            cursor: pointer;
+                            margin-top: 15px;
+                        ">
+                            🔄 ลองใหม่
                         </button>
                     </div>
                 `;

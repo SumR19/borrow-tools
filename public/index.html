@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบยืม-คืนอุปกรณ์</title>
     <link rel="icon" type="image/png" href="icons/borrow-tools.png">
-    <link rel="stylesheet" href="/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css?v=20250629">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
@@ -48,16 +49,19 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- ✅ Navigation Links -->
-            <div class="nav-links">
-                <a href="/api-ui" class="nav-link">📊 ดูรายการอุปกรณ์ที่ยืม</a>
-                <a href="/dashboard" class="nav-link">📈 Dashboard</a>
-                <a href="/history-page" class="nav-link">📜 ประวัติ</a>
-            </div>
+
+            <!-- Navigation  -->
+            <nav class="nav-links">
+                <a href="api-ui.html" class="nav-link">การยืมของวันนี้</a>
+                <a href="/dashboard.html" class="nav-link">📈 Dashboard</a>
+                <a href="/history.html" class="nav-link">📜 ประวัติ</a>
+                <a href="/admin.html" class="nav-link">🛠️ จัดการ</a>
+            </nav>
         </div>
     </main>
 
-    <script src="/script.js"></script>
+    <!-- ✅ เพิ่ม Socket.IO CDN -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="/script.js?v=20250629"></script>
 </body>
 </html>

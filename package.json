@@ -14,8 +14,10 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "mongoose": "^8.16.0",
-    "node-cron": "^4.1.1"
+    "mongoose": "^8.16.1",
+    "node-cron": "^4.1.1",
+    "socket.io": "^4.8.1",
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
     "@types/node": "^24.0.3"
